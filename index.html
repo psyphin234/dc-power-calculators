@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12 V DC Power Calculators: Voltage Drop, Cable Size, Fuses | PsyPhin</title>
+<meta name="description" content="Free 12V DC calculators for cars, 4x4s, caravans, campers and boats: voltage drop, cable size, fuses, DC-DC and alternator charging, solar panel sizing and wiring, inverter draw, battery runtime and more.">
+<link rel="canonical" href="https://dc-power.psyphin.co.za/">
+<meta name="theme-color" content="#040817">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="12V DC Power Calculators">
+<meta property="og:description" content="Voltage drop, wire size, fuses, DC-DC charging, solar sizing and wiring, inverter draw and battery runtime for cars, 4x4s and caravans.">
+<meta property="og:url" content="https://dc-power.psyphin.co.za/">
+<meta property="og:image" content="https://psyphin.co.za/assets/img/projects/dc-power.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="favicon-96x96.png" type="image/png" sizes="96x96">
+<link rel="icon" href="favicon-192x192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+<script src="circuit.js" defer></script>
+<style>
+/* Design tokens: taken from psyphin.co.za so this page matches the main site */
+:root {
+  --bg: #040817; --surface: #0b1330; --surface-2: #101a3c;
+  --glass: rgba(11, 19, 48, 0.58); --border: rgba(120, 170, 255, 0.14);
+  --metal-light: #eaf2ff; --metal: #a8b7d6; --metal-dark: #7487ad;
+  --text: #eaf2ff; --text-muted: #a8b7d6;
+  --accent: #4cc9ff; --accent-strong: #2f6bff; --accent-glow: rgba(76, 201, 255, 0.35);
+  --violet: #7c5cff; --green: #2ee6a6; --amber: #ffc857; --red: #ff7a88;
+  --radius: 18px; --max-width: 1040px;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+  --m-good: #2ee6a6; --m-warn: #ffc857; --m-bad: #ff7a88;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  position: relative; margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font-body); font-size: 1rem; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+a { color: var(--accent); }
+::selection { background: rgba(76, 201, 255, 0.35); color: #fff; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+/* ---------- circuit-board background + aurora glow (same as main site) ---------- */
+body::before, body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+body::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' fill='none'%3E%3Cfilter id='g' filterUnits='userSpaceOnUse' x='-20' y='-20' width='220' height='220'%3E%3CfeGaussianBlur stdDeviation='1.8' result='b'/%3E%3CfeMerge%3E%3CfeMergeNode in='b'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3Cg filter='url(%23g)'%3E%3Cg stroke='%233fb6ff' stroke-opacity='0.18' stroke-width='1.1'%3E%3Cpath d='M0 40h46l18 18h44M108 58v42l18 18h54M24 180v-44l18-18h34M180 22h-34L124 0M76 118v-20l-14-14H0M146 180v-26l12-12h22'/%3E%3C/g%3E%3Cg stroke='%235cc8ff' stroke-opacity='0.38'%3E%3Ccircle cx='108' cy='58' r='2.6'/%3E%3Ccircle cx='76' cy='118' r='2.6'/%3E%3Ccircle cx='146' cy='22' r='2.6'/%3E%3Ccircle cx='146' cy='154' r='2.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+body::after {
+  z-index: -2; inset: -20%;
+  background:
+    radial-gradient(38% 32% at 82% 8%, rgba(47, 107, 255, 0.3), transparent 70%),
+    radial-gradient(30% 28% at 10% 40%, rgba(124, 92, 255, 0.18), transparent 70%),
+    radial-gradient(34% 30% at 70% 85%, rgba(0, 180, 255, 0.12), transparent 70%);
+}
+
+/* circuit.js draws the animated board and hides the static tile above (same two rules as the main site) */
+.fx-circuit body::before { display: none; }
+.circuit-fx { position: fixed; top: 0; left: 0; z-index: -1; pointer-events: none; }
+
+.wrap { max-width: var(--max-width); margin: 0 auto; padding: 0 16px; }
+
+/* ---------- site header (links back to the main site) ---------- */
+.site-header-inner { display: flex; align-items: center; justify-content: flex-start; max-width: var(--max-width); margin: 0 auto; padding: 14px 16px; }
+
+/* ---------- hero ---------- */
+.hero { position: relative; max-width: var(--max-width); margin: 0 auto; padding: 0 16px 20px; overflow-x: clip; }
+.hero::before {
+  content: ""; position: absolute; top: 30%; left: 50%; width: min(700px, 130%); height: 420px; transform: translate(-50%, -50%);
+  z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(47, 107, 255, 0.28), rgba(76, 201, 255, 0.08) 40%, transparent 70%);
+}
+.hero-logo {
+  display: block; width: 60%; max-width: 320px; height: auto; margin: 0 auto 8px; mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent), linear-gradient(transparent, #000 5%, #000 95%, transparent);
+  mask-composite: intersect;
+}
+.pill-link {
+  display: inline-flex; align-items: center; padding: 6px 14px; margin-bottom: 18px; border-radius: 999px;
+  border: 1px solid var(--border); background: rgba(11, 19, 48, .6); color: var(--text); text-decoration: none;
+  font-family: var(--font-display); font-weight: 500; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+  transition: border-color .2s, box-shadow .2s;
+}
+.site-header .pill-link { margin-bottom: 0; }
+.pill-link:hover { border-color: rgba(76, 201, 255, .5); box-shadow: 0 0 20px -6px var(--accent-glow); }
+h1, .calc > h2 {
+  margin: 0 0 8px; font-family: var(--font-display); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  background: linear-gradient(100deg, #ffffff 0%, #d6ecff 40%, #7fd6ff 75%, #8f7bff 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+h1 { font-size: clamp(1.45rem, 4.6vw, 2.1rem); line-height: 1.2; }
+h1::after, .calc > h2::after {
+  content: ""; display: block; width: 56px; height: 2px; margin-top: 10px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--violet)); box-shadow: 0 0 12px var(--accent-glow);
+}
+.hero p { margin: 14px 0 0; max-width: 64ch; color: var(--text-muted); font-size: 1.02rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 16px 0 0; }
+.tags li, .chip {
+  padding: 2px 10px; font-size: .75rem; font-weight: 500; letter-spacing: .04em; color: var(--accent);
+  background: rgba(76, 201, 255, .08); border: 1px solid rgba(76, 201, 255, .28); border-radius: 999px;
+}
+.tags li.tag--green { color: var(--green); background: rgba(46, 230, 166, .08); border-color: rgba(46, 230, 166, .32); }
+.tags li.tag--amber { color: var(--amber); background: rgba(255, 200, 87, .08); border-color: rgba(255, 200, 87, .32); }
+
+/* ---------- sticky calculator nav ---------- */
+.nav {
+  position: sticky; top: 0; z-index: 20; margin-top: 8px;
+  background: rgba(4, 8, 23, .78); backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border-bottom: 1px solid rgba(76, 201, 255, .22); box-shadow: 0 8px 30px -12px rgba(0, 0, 0, .7);
+}
+.nav ul { list-style: none; display: flex; gap: 8px; margin: 0 auto; padding: 10px 16px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: rgba(76, 201, 255, .3) transparent; max-width: var(--max-width); }
+.nav a {
+  display: block; white-space: nowrap; text-decoration: none; color: var(--metal);
+  font-family: var(--font-display); font-weight: 500; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+  padding: 8px 14px; border-radius: 999px; background: rgba(11, 19, 48, .6); border: 1px solid var(--border);
+  transition: color .2s, border-color .2s, box-shadow .2s;
+}
+.nav a:hover { color: var(--accent); border-color: rgba(76, 201, 255, .4); }
+.nav a.on { color: var(--accent); border-color: rgba(76, 201, 255, .6); background: rgba(76, 201, 255, .1); box-shadow: 0 0 18px -6px var(--accent-glow); }
+
+/* ---------- calculator cards (glass, like the main site's cards) ---------- */
+main { padding: 26px 0 10px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.calc, .calc-body > *, .budget-top > * { min-width: 0; }
+.calc {
+  position: relative; padding: 24px; scroll-margin-top: 70px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .008)), var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.calc::before {
+  content: ""; position: absolute; top: 0; left: 24px; right: 24px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(76, 201, 255, .7), rgba(124, 92, 255, .55), transparent);
+}
+.calc > h2 { font-size: 1.15rem; margin-bottom: 6px; }
+.calc > h2::after { width: 40px; margin-bottom: 14px; }
+.calc > .sub { margin: 0 0 20px; color: var(--text-muted); max-width: 72ch; }
+.calc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; align-content: start; }
+.inputs .full { grid-column: 1 / -1; }
+.inputs strong { font-family: var(--font-display); font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--metal); }
+.results {
+  display: grid; gap: 12px; padding: 18px; border-radius: 14px;
+  background: rgba(16, 26, 60, .55); border: 1px solid var(--border);
+}
+.empty { margin: 0; color: var(--text-muted); background: rgba(16, 26, 60, .55); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+
+.field { display: grid; gap: 5px; align-content: start; min-width: 0; }
+.field .lbl { font-size: .84rem; font-weight: 600; color: var(--text); }
+.field small { color: var(--metal-dark); font-size: .78rem; line-height: 1.4; }
+.input-wrap { display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: 10px; background: rgba(4, 8, 23, .65); overflow: hidden; min-width: 0; transition: border-color .2s, box-shadow .2s; }
+.input-wrap:focus-within { border-color: rgba(76, 201, 255, .6); box-shadow: 0 0 0 3px rgba(76, 201, 255, .16); }
+.input-wrap input { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; color: var(--text); font: inherit; font-variant-numeric: tabular-nums; padding: 0 12px; height: 44px; outline: none; }
+.input-wrap input::placeholder { color: var(--metal-dark); }
+.input-wrap .unit, .input-wrap select {
+  display: flex; align-items: center; padding: 0 12px; color: var(--metal); background: rgba(120, 170, 255, .08);
+  border: 0; border-left: 1px solid var(--border); font: inherit; font-size: .88rem;
+}
+.input-wrap select { cursor: pointer; padding-right: 6px; outline: none; color: var(--text); }
+.input-wrap input.computed { background: rgba(76, 201, 255, .12); color: var(--accent); font-weight: 700; }
+select option, select optgroup { background: #0b1330; color: #eaf2ff; }
+select.sel {
+  width: 100%; height: 44px; font: inherit; color: var(--text); min-width: 0; padding: 0 10px; border-radius: 10px;
+  background: rgba(4, 8, 23, .65); border: 1px solid var(--border);
+}
+select.sel:focus { outline: none; border-color: rgba(76, 201, 255, .6); box-shadow: 0 0 0 3px rgba(76, 201, 255, .16); }
+.check { display: flex; align-items: center; gap: 10px; font-size: .9rem; cursor: pointer; padding: 6px 0; }
+.check input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0 20px; border-radius: 999px;
+  border: 1px solid var(--border); background: rgba(11, 19, 48, .6); color: var(--text); cursor: pointer;
+  font-family: var(--font-display); font-weight: 600; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase;
+  transition: border-color .2s, box-shadow .2s;
+}
+.btn:hover { border-color: rgba(76, 201, 255, .5); box-shadow: 0 0 20px -6px var(--accent-glow); }
+.btn.primary {
+  color: #031022; background: linear-gradient(100deg, var(--accent-strong), var(--accent)); border: 1px solid rgba(140, 220, 255, .6);
+  box-shadow: 0 0 0 1px rgba(76, 201, 255, .25), 0 8px 28px -8px rgba(47, 140, 255, .65);
+}
+.btn.primary:hover { box-shadow: 0 0 0 1px rgba(76, 201, 255, .5), 0 10px 32px -6px rgba(47, 140, 255, .85); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* results */
+.big {
+  font-family: var(--font-display); font-size: clamp(1.7rem, 5vw, 2.3rem); font-weight: 700; letter-spacing: -.01em; line-height: 1.15; font-variant-numeric: tabular-nums;
+  background: linear-gradient(100deg, #ffffff 0%, #bfe9ff 55%, #4cc9ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sub { color: var(--text-muted); }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.kv { display: grid; margin: 0; }
+.kv > div { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px solid var(--border); font-size: .93rem; }
+.kv > div:first-child { border-top: 0; }
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.note { padding: 10px 12px; border-radius: 10px; font-size: .9rem; line-height: 1.45; border: 1px solid transparent; }
+.note.good { background: rgba(46, 230, 166, .09); border-color: rgba(46, 230, 166, .3); color: var(--green); }
+.note.warn { background: rgba(255, 200, 87, .09); border-color: rgba(255, 200, 87, .32); color: var(--amber); }
+.note.bad { background: rgba(255, 122, 136, .1); border-color: rgba(255, 122, 136, .35); color: var(--red); }
+.note.info { background: rgba(76, 201, 255, .07); border-color: rgba(76, 201, 255, .24); color: #cfe9ff; }
+.note b { font-weight: 700; }
+.meter { position: relative; height: 10px; border-radius: 99px; margin: 10px 4px 22px; background: linear-gradient(90deg, var(--m-good) 0 25%, var(--m-warn) 25% 83.3%, var(--m-bad) 83.3% 100%); box-shadow: 0 0 16px -4px rgba(76, 201, 255, .3); }
+.meter i { position: absolute; top: -5px; width: 5px; height: 20px; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px var(--bg), 0 0 12px var(--accent-glow); transform: translateX(-50%); transition: left .25s; }
+.meter span { position: absolute; top: 16px; font-size: .68rem; color: var(--metal); transform: translateX(-50%); }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: rgba(4, 8, 23, .5); }
+table { border-collapse: collapse; width: 100%; font-size: .87rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 11px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-family: var(--font-display); font-weight: 500; font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--metal); background: rgba(120, 170, 255, .06); }
+tr:last-child td { border-bottom: 0; }
+tr.rec td { background: rgba(76, 201, 255, .12); font-weight: 700; }
+td.ok, td.no { white-space: normal; min-width: 92px; }
+td.ok { color: var(--green); } td.no { color: var(--red); }
+td.wrapok { white-space: normal; min-width: 180px; }
+
+/* power budget rows */
+.rowhead, .brow { display: grid; grid-template-columns: minmax(130px, 1fr) 76px 76px 56px 44px 38px; gap: 8px; align-items: center; }
+.rowhead { font-family: var(--font-display); font-size: .66rem; text-transform: uppercase; letter-spacing: .1em; color: var(--metal); padding: 0 2px; }
+.brows { display: grid; gap: 8px; }
+.brow input[type=text], .brow input[type=number] { width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 8px; background: rgba(4, 8, 23, .65); color: var(--text); font: inherit; font-size: .92rem; padding: 0 8px; min-width: 0; }
+.brow input:focus { outline: none; border-color: rgba(76, 201, 255, .6); box-shadow: 0 0 0 3px rgba(76, 201, 255, .16); }
+.brow .cell { display: block; min-width: 0; }
+.brow .cap { display: none; font-size: .7rem; color: var(--metal); }
+.brow .tick { display: flex; justify-content: center; }
+.brow .tick input { width: 20px; height: 20px; accent-color: var(--accent); }
+.rm { width: 36px; height: 36px; border: 1px solid var(--border); background: rgba(11, 19, 48, .6); color: var(--metal); border-radius: 50%; cursor: pointer; font-size: 1.1rem; line-height: 1; }
+.rm:hover { color: var(--red); border-color: var(--red); }
+.budget-top { display: grid; gap: 14px; }
+
+/* misc */
+details { border: 1px solid var(--border); border-radius: 14px; background: rgba(11, 19, 48, .6); padding: 0 16px; }
+details + details { margin-top: 10px; }
+summary { cursor: pointer; padding: 14px 0; font-weight: 600; }
+details p, details ul { margin: 0 0 14px; color: var(--text-muted); }
+details ul { padding-left: 20px; }
+.refgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.refgrid > * { min-width: 0; }
+h3 { margin: 4px 0 8px; font-family: var(--font-display); font-weight: 600; font-size: .85rem; letter-spacing: .1em; text-transform: uppercase; color: var(--metal-light); }
+.formula { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .85rem; background: rgba(120, 170, 255, .1); padding: 2px 6px; border-radius: 6px; }
+.warnbox { margin-top: 24px; }
+footer { position: relative; margin-top: 34px; padding: 32px 0 44px; text-align: center; color: var(--metal-dark); font-size: .875rem; }
+footer p { margin: 0 auto 8px; max-width: 80ch; }
+footer a { color: var(--accent); }
+
+@media (max-width: 820px) {
+  .calc-body { grid-template-columns: minmax(0, 1fr); }
+  .calc { padding: 20px 16px; }
+  .calc::before { left: 16px; right: 16px; }
+}
+@media (max-width: 640px) {
+  .rowhead { display: none; }
+  .brow { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) 44px 38px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(16, 26, 60, .5); }
+  .brow .cell.name { grid-column: 1 / -1; }
+  .brow .cap { display: block; }
+  .brow .tick { flex-direction: column; align-items: center; gap: 2px; }
+}
+@media (max-width: 440px) {
+  .inputs { grid-template-columns: minmax(0, 1fr); }
+}
+@media print { .nav, .site-header-inner, .btn { display: none !important; } .calc { break-inside: avoid; box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .meter i { transition: none; } }
+</style>
+</head>
+<body id="top">
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <a class="pill-link" href="https://psyphin.co.za/#tools"><span aria-hidden="true">←</span>&nbsp;More PsyPhin tools</a>
+  </div>
+</header>
+
+<section class="hero">
+  <img class="hero-logo" src="logo-800.jpg" alt="PsyPhin" width="320" height="174">
+  <h1>12&nbsp;V DC power calculators</h1>
+  <p>The questions that come up on every car, 4x4, caravan, camper and boat electrical job: how much voltage will I lose, how thick must the cable be, what fuse do I need, how do I charge from the tow vehicle or the sun, and how long will the battery last.</p>
+  <ul class="tags">
+    <li>Cars, 4x4s &amp; caravans</li>
+    <li>DC-DC &amp; solar</li>
+    <li class="tag--green">Free, no sign-up</li>
+    <li class="tag--amber">Your inputs never leave your browser</li>
+    <li>mm² and AWG</li>
+    <li>12 V, 24 V and 48 V</li>
+  </ul>
+</section>
+
+<nav class="nav" aria-label="Calculators">
+  <ul id="navlist">
+    <li><a href="#voltage-drop">Voltage drop</a></li>
+    <li><a href="#wire-size">Wire size</a></li>
+    <li><a href="#fuse">Fuse size</a></li>
+    <li><a href="#ohm">Watts ⇄ amps</a></li>
+    <li><a href="#inverter">Inverter draw</a></li>
+    <li><a href="#runtime">Battery runtime</a></li>
+    <li><a href="#charge">Charge time</a></li>
+    <li><a href="#dcdc">DC-DC / alternator</a></li>
+    <li><a href="#budget">Power budget</a></li>
+    <li><a href="#solar">Solar sizing</a></li>
+    <li><a href="#array">Solar wiring</a></li>
+    <li><a href="#bank">Battery bank</a></li>
+    <li><a href="#soc">Battery % from volts</a></li>
+    <li><a href="#reference">Reference</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+<noscript><p class="note warn" style="margin-top:20px">These calculators need JavaScript. Please enable it in your browser.</p></noscript>
+<main>
+
+<!-- ============ 1. VOLTAGE DROP ============ -->
+<section class="calc" id="voltage-drop" data-calc="vdrop">
+  <h2>Voltage drop</h2>
+  <p class="sub">How much voltage is lost along a cable. A 12 V system has very little to spare: lose 1.5 V and a 12 V load only sees 10.5 V.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <div data-f="vs" data-hint="About 12.6 V resting, 13.8–14.4 V with the engine running."></div>
+      <div data-f="load" data-def="30"></div>
+      <div data-f="len" data-def="5" data-label="Cable length, one way" data-hint="Battery to load. The return path is added for you."></div>
+      <div data-f="wire" data-def="6"></div>
+      <div data-f="mat"></div>
+      <div data-f="temp"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter voltage, load, length and cable size.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <div data-out="status"></div>
+        <div class="meter" data-meter aria-hidden="true"><i></i><span style="left:25%">3 %</span><span style="left:83.3%">10 %</span></div>
+        <dl class="kv">
+          <div><dt>Voltage at the load</dt><dd data-out="vload"></dd></div>
+          <div><dt>Power wasted as heat in the cable</dt><dd data-out="heat"></dd></div>
+          <div><dt>This cable's safe continuous rating</dt><dd data-out="amp"></dd></div>
+          <div><dt>Longest run for 3 % drop</dt><dd data-out="lmax"></dd></div>
+          <div><dt>Cable needed for 3 % drop</dt><dd data-out="suggest"></dd></div>
+        </dl>
+        <div data-out="ampnote"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. WIRE SIZE ============ -->
+<section class="calc" id="wire-size" data-calc="wiresize">
+  <h2>Wire size</h2>
+  <p class="sub">The smallest standard cable that stays inside your voltage-drop limit <em>and</em> carries the current without overheating. It checks both, because either one can be the limit.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <div data-f="vs"></div>
+      <div data-f="load" data-def="40"></div>
+      <div data-f="len" data-def="6" data-label="Cable length, one way" data-hint="Battery to load. Return path added for you."></div>
+      <div data-f="pct" data-def="3"></div>
+      <div data-f="mat"></div>
+      <div data-f="temp"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter voltage, load and length.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <div data-out="why"></div>
+        <div class="tablewrap"><table><thead><tr><th>Size</th><th>AWG</th><th>Drop</th><th>Rated</th><th>Result</th></tr></thead><tbody data-out="rows"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. FUSE ============ -->
+<section class="calc" id="fuse" data-calc="fuse">
+  <h2>Fuse size</h2>
+  <p class="sub">A fuse protects the <em>cable</em>, not the appliance. It has to blow before the wire gets hot, but not at normal running current.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <div data-f="vs"></div>
+      <div data-f="load" data-def="25"></div>
+      <label class="field full"><span class="lbl">Type of load</span>
+        <select class="sel" name="type">
+          <option value="1.25">Normal continuous load (lights, fridge, electronics) × 1.25</option>
+          <option value="1.5">Motor, pump, compressor or winch (start-up surge) × 1.5</option>
+        </select>
+      </label>
+      <div data-f="wire" data-def="" data-blank="Not sure / not chosen yet" data-label="Cable you plan to use (optional)"></div>
+      <div data-f="mat"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter voltage and load.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Absolute minimum (load × factor)</dt><dd data-out="min"></dd></div>
+          <div><dt>Fuse type</dt><dd data-out="ftype"></dd></div>
+          <div><dt>Smallest cable this fuse can protect</dt><dd data-out="minwire"></dd></div>
+        </dl>
+        <div data-out="check"></div>
+        <div class="note info">Fit the fuse as close to the battery (power source) as possible, within about 300 mm, so the whole length of cable is protected.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. OHM ============ -->
+<section class="calc" id="ohm" data-calc="ohm">
+  <h2>Watts, amps, volts and ohms</h2>
+  <p class="sub">Type any <strong>two</strong> values and the other two are worked out. Handy for turning a watt rating into the amps it pulls from the battery.</p>
+  <div class="calc-body">
+    <div>
+      <div class="inputs">
+        <label class="field"><span class="lbl">Volts</span><div class="input-wrap"><input name="v" type="number" inputmode="decimal" min="0" step="any" value="12"><span class="unit">V</span></div></label>
+        <label class="field"><span class="lbl">Amps</span><div class="input-wrap"><input name="i" type="number" inputmode="decimal" min="0" step="any"><span class="unit">A</span></div></label>
+        <label class="field"><span class="lbl">Watts</span><div class="input-wrap"><input name="p" type="number" inputmode="decimal" min="0" step="any" value="100"><span class="unit">W</span></div></label>
+        <label class="field"><span class="lbl">Resistance</span><div class="input-wrap"><input name="r" type="number" inputmode="decimal" min="0" step="any"><span class="unit">Ω</span></div></label>
+        <div class="full btn-row"><button class="btn" type="button" data-act="ohm-clear">Clear</button><small class="sub">Shaded boxes are calculated.</small></div>
+      </div>
+    </div>
+    <div>
+      <p class="empty" data-empty>Enter any two values.</p>
+      <div class="results" data-results aria-live="polite" hidden>
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv" data-out="formulas"></dl>
+        <div class="note info">Current at 12 V is about <b>watts ÷ 12</b>. A 120 W light bar pulls 10 A, and a 1,000 W inverter pulls roughly 90–100 A once you allow for its losses.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. INVERTER ============ -->
+<section class="calc" id="inverter" data-calc="inverter">
+  <h2>Inverter DC draw and cable</h2>
+  <p class="sub">An inverter that supplies 1,000 W of 230 V pulls far more than 83 A from a 12 V battery. This gives the real DC current, the fuse and the cable size.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field"><span class="lbl">AC load (continuous)</span><div class="input-wrap"><input name="watts" type="number" inputmode="decimal" min="0" step="any" value="1000"><span class="unit">W</span></div></label>
+      <label class="field"><span class="lbl">Surge / start-up (optional)</span><div class="input-wrap"><input name="surge" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 2000"><span class="unit">W</span></div></label>
+      <label class="field"><span class="lbl">Battery system</span>
+        <select class="sel" name="sys"><option value="12" selected>12 V</option><option value="24">24 V</option><option value="48">48 V</option></select></label>
+      <label class="field"><span class="lbl">Inverter efficiency</span><div class="input-wrap"><input name="eff" type="number" inputmode="decimal" min="50" max="99" step="any" value="90"><span class="unit">%</span></div><small>85–93 % is typical.</small></label>
+      <div data-f="len" data-def="1.5" data-label="Cable length, one way" data-hint="Keep inverter cables as short as you can."></div>
+      <div data-f="pct" data-def="2"></div>
+      <div data-f="mat"></div>
+      <div data-f="temp"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the AC load and cable length.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>DC current, battery at nominal voltage</dt><dd data-out="inom"></dd></div>
+          <div><dt>DC current, battery nearly flat (design value)</dt><dd data-out="ilow"></dd></div>
+          <div data-row="surge"><dt>Peak at surge</dt><dd data-out="isurge"></dd></div>
+          <div><dt>Fuse (close to the battery)</dt><dd data-out="fuse"></dd></div>
+          <div><dt>Cable (each of positive and negative)</dt><dd data-out="cable"></dd></div>
+          <div><dt>Battery bank size, rule of thumb</dt><dd data-out="bat"></dd></div>
+        </dl>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. RUNTIME ============ -->
+<section class="calc" id="runtime" data-calc="runtime">
+  <h2>Battery runtime</h2>
+  <p class="sub">How long a battery will run a load before it hits its safe limit. Lead-acid batteries lose capacity at heavy loads, so this applies a Peukert correction.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field full"><span class="lbl">Battery type</span>
+        <select class="sel" name="chem">
+          <option value="flooded">Lead-acid, flooded / starter / deep-cycle</option>
+          <option value="agm" selected>AGM</option>
+          <option value="gel">Gel</option>
+          <option value="lfp">Lithium (LiFePO4)</option>
+        </select></label>
+      <label class="field"><span class="lbl">Battery capacity</span><div class="input-wrap"><input name="ah" type="number" inputmode="decimal" min="0" step="any" value="100"><span class="unit">Ah</span></div><small>Total, if you have several in parallel.</small></label>
+      <label class="field"><span class="lbl">Battery voltage</span><div class="input-wrap"><input name="v" type="number" inputmode="decimal" min="0" step="any" value="12"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Usable capacity</span><div class="input-wrap"><input name="usable" type="number" inputmode="decimal" min="1" max="100" step="any" value="50"><span class="unit">%</span></div><small>How far you're willing to discharge.</small></label>
+      <div data-f="load" data-def="60" data-label="Load" data-units="wa" data-def-unit="w"></div>
+      <label class="check full" data-ref="invwrap"><input type="checkbox" name="inv"> The load is 230 V AC running through an inverter (adds about 10 % loss)</label>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the battery size and the load.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Current drawn from the battery</dt><dd data-out="draw"></dd></div>
+          <div><dt>Energy you can use</dt><dd data-out="energy"></dd></div>
+          <div><dt>Effective usable capacity at this load</dt><dd data-out="eff"></dd></div>
+        </dl>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. CHARGE ============ -->
+<section class="calc" id="charge" data-calc="charge">
+  <h2>Charge time</h2>
+  <p class="sub">How long a charger, alternator, DC-DC charger or solar will take to fill the battery back up.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field full"><span class="lbl">Battery type</span>
+        <select class="sel" name="chem"><option value="lead">Lead-acid / AGM / Gel</option><option value="lfp">Lithium (LiFePO4)</option></select></label>
+      <label class="field"><span class="lbl">Battery capacity</span><div class="input-wrap"><input name="ah" type="number" inputmode="decimal" min="0" step="any" value="100"><span class="unit">Ah</span></div></label>
+      <label class="field"><span class="lbl">Charger output</span><div class="input-wrap"><input name="amps" type="number" inputmode="decimal" min="0" step="any" value="20"><span class="unit">A</span></div></label>
+      <label class="field"><span class="lbl">Charge now</span><div class="input-wrap"><input name="soc" type="number" inputmode="decimal" min="0" max="100" step="any" value="50"><span class="unit">%</span></div></label>
+      <label class="field"><span class="lbl">Charge to</span><div class="input-wrap"><input name="target" type="number" inputmode="decimal" min="0" max="100" step="any" value="100"><span class="unit">%</span></div></label>
+      <label class="field full"><span class="lbl">Load running while charging (optional)</span><div class="input-wrap"><input name="other" type="number" inputmode="decimal" min="0" step="any" value="0"><span class="unit">A</span></div><small>e.g. the fridge: it takes charge current away from the battery.</small></label>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the battery size, charger current and charge levels.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Amp-hours to put back</dt><dd data-out="need"></dd></div>
+          <div><dt>Charge rate</dt><dd data-out="crate"></dd></div>
+          <div><dt>Net current into battery</dt><dd data-out="net"></dd></div>
+        </dl>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7b. DC-DC / ALTERNATOR ============ -->
+<section class="calc" id="dcdc" data-calc="dcdc">
+  <h2>DC-DC and alternator charging (tow vehicle → caravan)</h2>
+  <p class="sub">Charging a caravan, camper or second battery from the vehicle's alternator. A DC-DC charger draws <em>more</em> current from the vehicle than it delivers to the battery, and usually over a long cable, so the input cable is where most installs go wrong.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field"><span class="lbl">Charger output current</span><div class="input-wrap"><input name="out" type="number" inputmode="decimal" min="0" step="any" value="40"><span class="unit">A</span></div><small>e.g. 20, 25, 40 or 50 A unit.</small></label>
+      <label class="field"><span class="lbl">Caravan battery voltage</span>
+        <select class="sel" name="sys"><option value="12" selected>12 V</option><option value="24">24 V</option></select></label>
+      <label class="field"><span class="lbl">Vehicle voltage at the charger</span><div class="input-wrap"><input name="vin" type="number" inputmode="decimal" min="0" step="any" value="12"><span class="unit">V</span></div><small>12 V is a safe design figure.</small></label>
+      <label class="field"><span class="lbl">Charger efficiency</span><div class="input-wrap"><input name="eff" type="number" inputmode="decimal" min="50" max="99" step="any" value="92"><span class="unit">%</span></div></label>
+      <label class="field"><span class="lbl">Input cable length, one way</span><div class="input-wrap"><input name="inlen" type="number" inputmode="decimal" min="0" step="any" value="6"><span class="unit">m</span></div><small>Vehicle battery to the charger. For a caravan, include the run through the tow plug.</small></label>
+      <label class="field"><span class="lbl">Output cable length, one way</span><div class="input-wrap"><input name="outlen" type="number" inputmode="decimal" min="0" step="any" value="1"><span class="unit">m</span></div><small>Charger to the caravan battery.</small></label>
+      <div data-f="pct" data-def="3"></div>
+      <div data-f="mat"></div>
+      <div data-f="temp" class="full"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the charger output and cable lengths.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Charger output power</dt><dd data-out="pout"></dd></div>
+          <div><dt>Heat lost in the charger</dt><dd data-out="loss"></dd></div>
+          <div><dt>Input fuse (at the vehicle battery)</dt><dd data-out="infuse"></dd></div>
+          <div><dt>Input cable (each of + and −)</dt><dd data-out="incable"></dd></div>
+          <div><dt>Output fuse (at the caravan battery)</dt><dd data-out="outfuse"></dd></div>
+          <div><dt>Output cable (each of + and −)</dt><dd data-out="outcable"></dd></div>
+        </dl>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. BUDGET ============ -->
+<section class="calc" id="budget" data-calc="budget">
+  <h2>Power budget</h2>
+  <p class="sub">List what you run each day to find out how many amp-hours you use, how big the battery should be, and how much solar you need.</p>
+  <div class="budget-top">
+    <div>
+      <div class="rowhead" aria-hidden="true"><span>Appliance</span><span>Watts</span><span>Hours/day</span><span>Qty</span><span>AC*</span><span></span></div>
+      <div class="brows" data-rows></div>
+    </div>
+    <div class="btn-row">
+      <select class="sel" data-presets aria-label="Add a common appliance" style="max-width:340px"></select>
+      <button class="btn primary" type="button" data-act="add-preset">Add</button>
+      <button class="btn" type="button" data-act="add-blank">Add blank row</button>
+    </div>
+    <small class="sub">* Tick “AC” for things plugged into a 230 V inverter: they use about 10 % more from the battery, and fridge-type loads should use their average running hours. Wattages are typical figures, so check the label on your own gear.</small>
+  </div>
+  <div class="calc-body" style="margin-top:18px">
+    <div class="inputs">
+      <label class="field"><span class="lbl">Battery voltage</span><div class="input-wrap"><input name="v" type="number" inputmode="decimal" min="0" step="any" value="12"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Inverter efficiency</span><div class="input-wrap"><input name="eff" type="number" inputmode="decimal" min="50" max="99" step="any" value="90"><span class="unit">%</span></div></label>
+      <label class="field"><span class="lbl">Battery type</span>
+        <select class="sel" name="chem"><option value="50" selected>Lead-acid / AGM (50 % usable)</option><option value="90">Lithium LiFePO4 (90 % usable)</option></select></label>
+      <label class="field"><span class="lbl">Days without charging</span>
+        <select class="sel" name="days"><option value="1" selected>1 day</option><option value="2">2 days</option><option value="3">3 days</option></select></label>
+    </div>
+    <div>
+      <p class="empty" data-empty>Add at least one appliance with watts and hours.</p>
+      <div class="results" data-results aria-live="polite" hidden>
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Energy per day</dt><dd data-out="wh"></dd></div>
+          <div><dt>Battery draw per day</dt><dd data-out="ahday"></dd></div>
+          <div><dt>Everything on at once</dt><dd data-out="peak"></dd></div>
+          <div><dt>Battery needed</dt><dd data-out="bat"></dd></div>
+        </dl>
+        <button class="btn primary" type="button" data-act="send-solar">Size solar for this →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. SOLAR ============ -->
+<section class="calc" id="solar" data-calc="solar">
+  <h2>Solar panel sizing</h2>
+  <p class="sub">How many watts of solar replace what you use each day, plus the regulator size. Size for the worst month you'll camp in, usually winter.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field full"><span class="lbl">Energy used per day</span><div class="input-wrap"><input name="wh" type="number" inputmode="decimal" min="0" step="any" value="600"><span class="unit">Wh</span></div><small>Use the power budget above, or amps × volts × hours.</small></label>
+      <label class="field"><span class="lbl">Battery voltage</span>
+        <select class="sel" name="v"><option value="12" selected>12 V</option><option value="24">24 V</option><option value="48">48 V</option></select></label>
+      <label class="field"><span class="lbl">Full-sun hours per day</span>
+        <select class="sel" name="psh"><option value="3">3 h – overcast / winter coast</option><option value="4" selected>4 h – typical winter</option><option value="5">5 h – yearly average</option><option value="6">6 h – summer, clear sky</option></select></label>
+      <label class="field"><span class="lbl">Regulator type</span>
+        <select class="sel" name="ctl"><option value="0.75" selected>MPPT (better)</option><option value="0.65">PWM (cheaper)</option></select></label>
+      <label class="field"><span class="lbl">Panel size you'll buy</span><div class="input-wrap"><input name="pw" type="number" inputmode="decimal" min="1" step="any" value="200"><span class="unit">W</span></div></label>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter your daily energy use and a panel size.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Solar needed (calculated)</dt><dd data-out="need"></dd></div>
+          <div><dt>Regulator, minimum current</dt><dd data-out="ctl"></dd></div>
+          <div><dt>Expected harvest from that array</dt><dd data-out="harvest"></dd></div>
+        </dl>
+        <div class="note info">Allows about 25–35 % for heat, dust, cable loss, panel angle and charging losses. Flat-mounted roof panels do worse in winter, so add margin if yours don't tilt.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9b. SOLAR ARRAY ============ -->
+<section class="calc" id="array" data-calc="array">
+  <h2>Solar wiring: series, parallel and cable size</h2>
+  <p class="sub">Check that your panel layout is safe for the solar regulator, and what cable to run from the roof. The most common mistake is too many panels in series: on a cold morning the voltage can exceed the regulator's limit and destroy it.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <div class="full"><strong>One panel (from its label)</strong></div>
+      <label class="field"><span class="lbl">Open-circuit voltage (Voc)</span><div class="input-wrap"><input name="voc" type="number" inputmode="decimal" min="0" step="any" value="24.2"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Voltage at max power (Vmp)</span><div class="input-wrap"><input name="vmp" type="number" inputmode="decimal" min="0" step="any" value="19.8"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Current at max power (Imp)</span><div class="input-wrap"><input name="imp" type="number" inputmode="decimal" min="0" step="any" value="10.1"><span class="unit">A</span></div></label>
+      <label class="field"><span class="lbl">Short-circuit current (Isc)</span><div class="input-wrap"><input name="isc" type="number" inputmode="decimal" min="0" step="any" value="10.7"><span class="unit">A</span></div></label>
+      <label class="field"><span class="lbl">Voc temperature coefficient</span><div class="input-wrap"><input name="coef" type="number" inputmode="decimal" step="any" value="-0.30"><span class="unit">%/°C</span></div><small>On the datasheet; usually −0.25 to −0.35.</small></label>
+      <label class="field"><span class="lbl">Coldest morning expected</span><div class="input-wrap"><input name="cold" type="number" inputmode="decimal" step="any" value="0"><span class="unit">°C</span></div></label>
+      <div class="full"><strong>Your layout</strong></div>
+      <label class="field"><span class="lbl">Panels in series</span><div class="input-wrap"><input name="s" type="number" inputmode="numeric" min="1" step="1" value="1"><span class="unit">×</span></div></label>
+      <label class="field"><span class="lbl">Strings in parallel</span><div class="input-wrap"><input name="p" type="number" inputmode="numeric" min="1" step="1" value="2"><span class="unit">×</span></div></label>
+      <div class="full"><strong>Solar regulator (MPPT)</strong></div>
+      <label class="field"><span class="lbl">Max PV input voltage</span><div class="input-wrap"><input name="maxv" type="number" inputmode="decimal" min="0" step="any" value="100"><span class="unit">V</span></div><small>e.g. 75, 100 or 150 V.</small></label>
+      <label class="field"><span class="lbl">Max charge current</span><div class="input-wrap"><input name="maxa" type="number" inputmode="decimal" min="0" step="any" value="30"><span class="unit">A</span></div></label>
+      <label class="field"><span class="lbl">Battery voltage</span>
+        <select class="sel" name="vb"><option value="12" selected>12 V</option><option value="24">24 V</option><option value="48">48 V</option></select></label>
+      <div data-f="len" data-def="4" data-label="Cable length, panels → regulator (one way)" data-hint="Along the roof and down to the regulator."></div>
+      <div data-f="mat"></div>
+      <div data-f="temp"></div>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the panel details and your layout.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <div data-out="status"></div>
+        <dl class="kv">
+          <div><dt>Array voltage, coldest (Voc)</dt><dd data-out="vocold"></dd></div>
+          <div><dt>Array working voltage (Vmp)</dt><dd data-out="vmpa"></dd></div>
+          <div><dt>Array current (Imp / Isc)</dt><dd data-out="ia"></dd></div>
+          <div><dt>Expected into the battery</dt><dd data-out="chg"></dd></div>
+          <div><dt>Panel cable (each + and −)</dt><dd data-out="cable"></dd></div>
+        </dl>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. BANK ============ -->
+<section class="calc" id="bank" data-calc="bank">
+  <h2>Battery bank: series and parallel</h2>
+  <p class="sub">Wiring in <strong>series</strong> adds voltage. Wiring in <strong>parallel</strong> adds capacity (Ah). Use identical batteries of the same age.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field"><span class="lbl">Each battery: voltage</span><div class="input-wrap"><input name="bv" type="number" inputmode="decimal" min="0" step="any" value="12"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Each battery: capacity</span><div class="input-wrap"><input name="bah" type="number" inputmode="decimal" min="0" step="any" value="100"><span class="unit">Ah</span></div></label>
+      <label class="field"><span class="lbl">In series</span><div class="input-wrap"><input name="s" type="number" inputmode="numeric" min="1" step="1" value="1"><span class="unit">×</span></div></label>
+      <label class="field"><span class="lbl">In parallel</span><div class="input-wrap"><input name="p" type="number" inputmode="numeric" min="1" step="1" value="2"><span class="unit">×</span></div></label>
+      <div class="full"><strong>Or work backwards: what do I need?</strong></div>
+      <label class="field"><span class="lbl">Target voltage</span><div class="input-wrap"><input name="tv" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 24"><span class="unit">V</span></div></label>
+      <label class="field"><span class="lbl">Target capacity</span><div class="input-wrap"><input name="tah" type="number" inputmode="decimal" min="0" step="any" placeholder="e.g. 300"><span class="unit">Ah</span></div></label>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter battery voltage, capacity and counts.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <dl class="kv">
+          <div><dt>Bank voltage</dt><dd data-out="bv"></dd></div>
+          <div><dt>Bank capacity</dt><dd data-out="bah"></dd></div>
+          <div><dt>Stored energy</dt><dd data-out="wh"></dd></div>
+          <div><dt>Number of batteries</dt><dd data-out="n"></dd></div>
+        </dl>
+        <div data-out="target"></div>
+        <div class="note info">Parallel banks: connect the load and charger to opposite corners (positive on one end battery, negative on the other end) or use equal-length cables so the batteries share evenly.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11. SOC ============ -->
+<section class="calc" id="soc" data-calc="soc">
+  <h2>Battery percentage from voltage</h2>
+  <p class="sub">A rough state-of-charge estimate from a multimeter reading. Only meaningful after the battery has rested with nothing charging or drawing power.</p>
+  <div class="calc-body">
+    <div class="inputs">
+      <label class="field full"><span class="lbl">Battery type</span>
+        <select class="sel" name="chem"><option value="lead">Lead-acid / AGM / Gel</option><option value="lfp">Lithium (LiFePO4)</option></select></label>
+      <label class="field"><span class="lbl">Battery system</span>
+        <select class="sel" name="sys"><option value="1" selected>12 V</option><option value="2">24 V</option></select></label>
+      <label class="field"><span class="lbl">Measured voltage</span><div class="input-wrap"><input name="volts" type="number" inputmode="decimal" min="0" step="0.01" value="12.4"><span class="unit">V</span></div></label>
+      <label class="check full"><input type="checkbox" name="rested" checked> The battery has rested for at least 2 hours (no charging, no load)</label>
+    </div>
+    <div>
+      <p class="empty" data-empty hidden>Enter the measured voltage.</p>
+      <div class="results" data-results aria-live="polite">
+        <div class="headline" data-out="headline"></div>
+        <div class="meter" aria-hidden="true" style="background:linear-gradient(90deg,var(--m-bad) 0 20%,var(--m-warn) 20% 50%,var(--m-good) 50% 100%)"><i data-soc-marker></i></div>
+        <div data-out="note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REFERENCE ============ -->
+<section class="calc" id="reference">
+  <h2>Reference tables</h2>
+  <p class="sub">Quick look-ups that match the numbers the calculators use.</p>
+  <div class="refgrid">
+    <div>
+      <h3>Cable current ratings (copper, conservative)</h3>
+      <div class="tablewrap"><table><thead><tr><th>mm²</th><th>AWG (same or thicker)</th><th>Safe continuous</th><th>CCA</th><th>Largest fuse</th><th>Typical use</th></tr></thead><tbody id="ampTable"></tbody></table></div>
+      <p class="sub" style="margin:8px 0 0;font-size:.85rem">Ratings assume ordinary automotive PVC or XLPE insulation, bundled in a warm vehicle. They are deliberately conservative: always check the cable maker's data sheet. “CCA” is copper-clad aluminium, which carries roughly 70 % of the current of copper.</p>
+    </div>
+    <div>
+      <h3>Typical 12 V loads</h3>
+      <div class="tablewrap"><table><thead><tr><th>Load</th><th>Watts (approx.)</th><th>Amps at 12 V</th></tr></thead><tbody id="loadTable"></tbody></table></div>
+    </div>
+    <div>
+      <h3>Common questions</h3>
+      <details><summary>Why do you double the cable length?</summary><p>Current has to flow out to the load <em>and</em> back to the battery. Voltage drops along both the positive and the negative (or chassis return). A 5 m run to a fridge is really 10 m of cable. If you use the chassis as the return, make sure the earth strap is just as thick and the connections are clean and bare metal.</p></details>
+      <details><summary>What voltage drop is acceptable?</summary><p>The usual guide is <b>3 %</b> (about 0.36 V on 12 V) for anything critical: lights, electronics, fridges, inverters. Up to about <b>10 %</b> is tolerated for non-critical loads such as a winch motor for short bursts. For charging cables, keep it low (1–3 %) so the battery actually gets the voltage it needs.</p></details>
+      <details><summary>Does the fuse go at the battery or at the load?</summary><p>At the battery (the power source), within about 300 mm of the positive terminal. The fuse protects the cable that runs from it, so a fuse at the far end leaves the whole cable unprotected if it shorts to the bodywork.</p></details>
+      <details><summary>Can I use a bigger fuse to stop it blowing?</summary><p>No. A fuse that keeps blowing is telling you the load is bigger than the circuit. Never fit a fuse rated above what the cable can carry; fix the cause or fit thicker cable.</p></details>
+      <details><summary>Is cheap “CCA” cable OK?</summary><p>It works, but it has around 60 % more resistance than copper for the same size and carries less current, and it corrodes badly at crimps. Select CCA in the calculators to see the difference. For battery, inverter and charging cables, pure copper is worth the money.</p></details>
+      <details><summary>What voltage should I design for?</summary><p>For voltage drop on running circuits, 12 V is the safe assumption; with the engine running it is 13.8–14.4 V. For inverters, design for the <b>low-battery</b> current (around 10.5 V on a 12 V system), since that is when the inverter draws the most.</p></details>
+      <details><summary>Series or parallel solar panels?</summary><p>Series adds voltage, parallel adds current. Series keeps the current low, so the roof cable can be thinner and shading or long runs hurt less in voltage terms, but you must stay under the regulator's maximum PV voltage on a <em>cold</em> morning (panel voltage rises as it gets colder). Parallel is the right choice with a low-voltage PWM regulator or when partial shade is common. Use the Solar wiring calculator to check your layout.</p></details>
+      <details><summary>Why isn't my caravan battery charging from the tow vehicle?</summary><ul><li>Voltage drop in a long, thin tow-plug cable (use the DC-DC calculator).</li><li>A smart alternator that only charges at ~12.5–13 V, so a basic relay or isolator won't fill the battery. Fit a DC-DC charger.</li><li>The vehicle's charge feed is on an ignition-switched circuit or a fuse that is too small.</li><li>A poor earth/return connection: the return path matters as much as the positive.</li></ul></details>
+      <details><summary>Do I need a DC-DC charger or can I wire the battery in directly?</summary><p>On older vehicles with a fixed 14 V alternator, a direct fused feed through an isolator or relay can work, but the long cable still drops voltage. A DC-DC charger fixes both the smart alternator and long-cable problems, and gives your lithium or AGM battery the correct charge profile. It is the recommended method for caravans and campers today.</p></details>
+      <details><summary>What about 24 V trucks?</summary><p>Everything here works for 24 V: set the system voltage to 24. The same power needs half the current, so cables and fuses can be much smaller. A 24 V system is far kinder to voltage drop.</p></details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="note warn warnbox"><b>Safety:</b> these tools give estimates to help you plan. A 12 V battery can deliver hundreds of amps into a short circuit, enough to melt cable and start a fire. Always fuse every positive feed close to the battery, use properly crimped lugs, and have large installs checked by a qualified auto-electrician. Check local regulations and the manufacturer's specifications for your equipment.</div>
+
+<footer>
+  <p><strong>DC Power</strong> is part of <a href="https://psyphin.co.za/">PsyPhin</a>. All calculations happen in your browser; the numbers you enter are never sent anywhere. Page visits are counted with privacy-friendly analytics (GoatCounter, no cookies).</p>
+  <p>Assumptions: copper resistivity 0.0172 Ω·mm²/m at 20 °C with temperature correction; CCA 0.0274; lead-acid resting-voltage curve for a 12 V flooded battery; Peukert exponents 1.25 (flooded), 1.15 (AGM/gel), 1.03 (LiFePO4). Results are approximations.</p>
+  <p><a href="#top">Back to top ↑</a></p>
+</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ============ formatting helpers ============ */
+  function nf(n, d) {
+    if (d === undefined) d = 2;
+    if (!isFinite(n)) return '–';
+    return n.toLocaleString('en-GB', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  }
+  function dur(h) {
+    if (!isFinite(h)) return '–';
+    if (h < 1) return Math.max(1, Math.round(h * 60)) + ' min';
+    if (h < 48) {
+      var hh = Math.floor(h), mm = Math.round((h - hh) * 60);
+      if (mm === 60) { hh += 1; mm = 0; }
+      return hh + ' h' + (mm ? ' ' + mm + ' min' : '');
+    }
+    return nf(h / 24, 1) + ' days';
+  }
+  function note(level, html) { return '<div class="note ' + level + '">' + html + '</div>'; }
+  function mmLabel(a) { return nf(a, 2) + ' mm²'; }
+
+  /* ============ electrical data ============ */
+  // [area mm², conservative continuous amps (copper)]
+  var SIZES = [[0.5,5],[0.75,7.5],[1,10],[1.5,15],[2.5,22],[4,30],[6,40],[10,60],[16,80],[25,110],[35,140],[50,180],[70,230],[95,280]];
+  var USES = { '0.5':'Switch signals, sensors, relay coils', '0.75':'Indicators, small accessories', '1':'Interior lights, small loads', '1.5':'Single headlight, fuel pump, horn', '2.5':'12 V sockets, fridge, light bar (short)', '4':'Compressor, light bars, 20 A DC-DC', '6':'25–30 A DC-DC charger, dual-battery', '10':'40 A DC-DC; inverter to ~400 W', '16':'Inverter to ~600 W', '25':'Inverter to ~1,000 W', '35':'Inverter to ~1,200 W', '50':'Inverter to ~1,500 W, winch (short)', '70':'Inverter to ~2,000 W', '95':'Inverter to ~2,500 W, starter cable' };
+  var AWG = [['18',0.823],['16',1.31],['14',2.08],['12',3.31],['10',5.26],['8',8.37],['6',13.3],['4',21.2],['2',33.6],['1',42.4],['1/0',53.5],['2/0',67.4],['3/0',85],['4/0',107.2]];
+  var MAT = { cu: { rho: 0.0172, alpha: 0.00393, derate: 1 }, cca: { rho: 0.0274, alpha: 0.0039, derate: 0.7 } };
+  var FUSES = [1,2,3,5,7.5,10,15,20,25,30,35,40,50,60,70,80,100,125,150,175,200,250,300,400,500,600];
+
+  function resist(mat, T) { var m = MAT[mat] || MAT.cu; return m.rho * (1 + m.alpha * (T - 20)); }
+  function ampacity(area, mat) {
+    var m = MAT[mat] || MAT.cu, lo = SIZES[0], hi = SIZES[SIZES.length - 1], a = lo[1];
+    if (area <= lo[0]) a = lo[1] * area / lo[0];
+    else if (area >= hi[0]) a = hi[1] * Math.pow(area / hi[0], 0.65);
+    else {
+      for (var i = 0; i < SIZES.length - 1; i++) {
+        var a0 = SIZES[i][0], i0 = SIZES[i][1], a1 = SIZES[i + 1][0], i1 = SIZES[i + 1][1];
+        if (area >= a0 && area <= a1) {
+          var t = (Math.log(area) - Math.log(a0)) / (Math.log(a1) - Math.log(a0));
+          a = Math.exp(Math.log(i0) + t * (Math.log(i1) - Math.log(i0)));
+          break;
+        }
+      }
+    }
+    return a * m.derate;
+  }
+  function awgLabel(area) {
+    for (var i = 0; i < AWG.length; i++) if (AWG[i][1] >= area - 0.001) return AWG[i][0] + ' AWG';
+    return 'bigger than 4/0 AWG';
+  }
+  function dropFor(area, I, L, mat, T) { return I * resist(mat, T) * 2 * L / area; }
+  // Smallest standard size meeting both voltage-drop and current limits.
+  function sizeFor(I, L, Vs, pct, mat, T) {
+    var need = resist(mat, T) * 2 * L * I / (Vs * pct / 100), iDrop = -1, iAmp = -1, i;
+    for (i = 0; i < SIZES.length; i++) if (SIZES[i][0] >= need - 1e-9) { iDrop = i; break; }
+    for (i = 0; i < SIZES.length; i++) if (ampacity(SIZES[i][0], mat) >= I) { iAmp = i; break; }
+    var beyond = iDrop < 0 || iAmp < 0;
+    return { need: need, iDrop: iDrop, iAmp: iAmp, beyond: beyond, idx: beyond ? -1 : Math.max(iDrop, iAmp) };
+  }
+  // Like sizeFor, but also makes sure the cable can carry the fuse rating (so the fuse protects it).
+  function cableFor(I, L, Vs, pct, mat, T, fuse) {
+    var sz = sizeFor(I, L, Vs, pct, mat, T);
+    if (!sz.beyond && fuse) {
+      var i = sz.idx;
+      while (i < SIZES.length && ampacity(SIZES[i][0], mat) < fuse) i++;
+      if (i >= SIZES.length) sz.beyond = true; else sz.idx = i;
+    }
+    return sz;
+  }
+  function fuseAtLeast(a) { for (var i = 0; i < FUSES.length; i++) if (FUSES[i] >= a - 1e-9) return FUSES[i]; return null; }
+  function fuseAtMost(a) { var r = null; FUSES.forEach(function (f) { if (f <= a + 1e-9) r = f; }); return r; }
+  function fuseKind(f) {
+    if (f <= 40) return 'Blade fuse (ATO/ATC) or breaker';
+    if (f <= 80) return 'MAXI blade fuse or breaker';
+    if (f <= 200) return 'MIDI / ANL / MRBF fuse or breaker';
+    return 'ANL / MEGA / Class T fuse';
+  }
+  function interp(table, v) {
+    if (v <= table[0][0]) return table[0][1];
+    for (var i = 0; i < table.length - 1; i++) {
+      if (v <= table[i + 1][0]) {
+        var t = (v - table[i][0]) / (table[i + 1][0] - table[i][0]);
+        return table[i][1] + t * (table[i + 1][1] - table[i][1]);
+      }
+    }
+    return table[table.length - 1][1];
+  }
+
+  /* ============ form field generators (shared inputs) ============ */
+  function fld(label, control, hint, extra) {
+    return '<label class="field' + (extra ? ' ' + extra : '') + '"><span class="lbl">' + label + '</span>' + control + (hint ? '<small>' + hint + '</small>' : '') + '</label>';
+  }
+  function wireOptions(def, blank) {
+    var h = blank ? '<option value="">' + blank + '</option>' : '';
+    h += '<optgroup label="Metric (mm²)">';
+    SIZES.forEach(function (s) { h += '<option value="' + s[0] + '"' + (String(s[0]) === String(def) ? ' selected' : '') + '>' + s[0] + ' mm²</option>'; });
+    h += '</optgroup><optgroup label="AWG (US / imported cable)">';
+    AWG.forEach(function (a) { h += '<option value="' + a[1] + '">' + a[0] + ' AWG (' + a[1] + ' mm²)</option>'; });
+    return h + '</optgroup>';
+  }
+  var GEN = {
+    vs: function (o) { return fld(o.label || 'System voltage', '<div class="input-wrap"><input name="vs" type="number" inputmode="decimal" min="0" step="any" value="' + (o.def || 12) + '"><span class="unit">V</span></div>', o.hint); },
+    load: function (o) {
+      var du = o.defUnit || 'a';
+      var opts = '<option value="a"' + (du === 'a' ? ' selected' : '') + '>A</option><option value="w"' + (du === 'w' ? ' selected' : '') + '>W</option>';
+      return fld(o.label || 'Load current', '<div class="input-wrap"><input name="load" type="number" inputmode="decimal" min="0" step="any" value="' + (o.def || '') + '"><select name="loadUnit" aria-label="Load unit">' + opts + '</select></div>', o.hint || 'Amps, or switch to watts.');
+    },
+    len: function (o) { return fld(o.label || 'Length', '<div class="input-wrap"><input name="len" type="number" inputmode="decimal" min="0" step="any" value="' + (o.def || '') + '"><select name="lenUnit" aria-label="Length unit"><option value="m">m</option><option value="ft">ft</option></select></div>', o.hint); },
+    wire: function (o) { return fld(o.label || 'Cable size', '<select class="sel" name="wire">' + wireOptions(o.def, o.blank) + '</select>', o.hint); },
+    mat: function (o) { return fld('Cable material', '<select class="sel" name="mat"><option value="cu">Copper</option><option value="cca">Copper-clad aluminium (CCA)</option></select>', o.hint); },
+    temp: function (o) { return fld('Cable temperature', '<select class="sel" name="temp"><option value="20">Cool, 20 °C</option><option value="40" selected>Warm, 40 °C (typical)</option><option value="70">Hot engine bay, 70 °C</option></select>', o.hint || 'Hot cable has more resistance.'); },
+    pct: function (o) { var d = String(o.def || 3); return fld('Maximum voltage drop', '<select class="sel" name="pct">' + [['1','1 % (very strict)'],['2','2 % (strict)'],['3','3 % (critical loads)'],['5','5 %'],['10','10 % (non-critical)']].map(function (x) { return '<option value="' + x[0] + '"' + (x[0] === d ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select>', o.hint); }
+  };
+  $$('[data-f]').forEach(function (el) {
+    var d = el.dataset, g = GEN[d.f];
+    if (!g) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = g({ label: d.label, def: d.def, hint: d.hint, blank: d.blank, defUnit: d.defUnit });
+    var node = tmp.firstChild;
+    if (el.className) node.className += ' ' + el.className;
+    el.parentNode.replaceChild(node, el);
+  });
+
+  /* ============ value readers ============ */
+  function num(sec, n) { var e = sec.querySelector('[name="' + n + '"]'); if (!e) return NaN; var v = parseFloat(e.value); return isNaN(v) ? NaN : v; }
+  function str(sec, n) { var e = sec.querySelector('[name="' + n + '"]'); return e ? e.value : ''; }
+  function checked(sec, n) { var e = sec.querySelector('[name="' + n + '"]'); return !!(e && e.checked); }
+  function len(sec) { var v = num(sec, 'len'); return str(sec, 'lenUnit') === 'ft' ? v * 0.3048 : v; }
+  function loadA(sec, Vs) { var v = num(sec, 'load'); return str(sec, 'loadUnit') === 'w' ? v / Vs : v; }
+  function out(sec, n, html) { $$('[data-out="' + n + '"]', sec).forEach(function (e) { e.innerHTML = html; }); }
+  function ok() { for (var i = 0; i < arguments.length; i++) if (!(isFinite(arguments[i]) && arguments[i] > 0)) return false; return true; }
+  function ready(sec, f) {
+    var r = $('[data-results]', sec), e = $('[data-empty]', sec);
+    if (r) r.hidden = !f;
+    if (e) e.hidden = f;
+    return f;
+  }
+
+  var CALCS = {};
+
+  /* ---------- 1. voltage drop ---------- */
+  CALCS.vdrop = function (sec) {
+    var Vs = num(sec, 'vs'), L = len(sec), I = loadA(sec, Vs), A = num(sec, 'wire'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ready(sec, ok(Vs, L, I, A))) return;
+    var r = resist(mat, T) * 2 * L / A, vd = I * r, pct = vd / Vs * 100, vl = Math.max(0, Vs - vd), heat = I * I * r;
+    var lv = pct <= 3 ? 'good' : pct <= 10 ? 'warn' : 'bad';
+    var msg = { good: '<b>Good.</b> Fine for lights, electronics and anything sensitive.', warn: '<b>Marginal.</b> OK for motors, pumps or a winch, but too much for lights and electronics.', bad: '<b>Too high.</b> Use a thicker cable or shorten the run.' }[lv];
+    out(sec, 'headline', '<span class="big">' + nf(vd, 2) + ' V</span><span class="sub">lost &nbsp;(' + nf(pct, 1) + ' %)</span>');
+    out(sec, 'status', note(lv, msg));
+    $('[data-meter] i', sec).style.left = Math.min(pct, 12) / 12 * 100 + '%';
+    out(sec, 'vload', nf(vl, 2) + ' V');
+    out(sec, 'heat', nf(heat, 1) + ' W');
+    var am = ampacity(A, mat);
+    out(sec, 'amp', '≈ ' + nf(am, 0) + ' A');
+    out(sec, 'lmax', nf(Vs * 0.03 * A / (resist(mat, T) * 2 * I), 1) + ' m <span class="sub">(' + nf(Vs * 0.03 * A / (resist(mat, T) * 2 * I) / 0.3048, 0) + ' ft)</span>');
+    var sz = sizeFor(I, L, Vs, 3, mat, T);
+    out(sec, 'suggest', sz.beyond ? 'More than one cable, or higher voltage' : mmLabel(SIZES[sz.idx][0]) + ' <span class="sub">(' + awgLabel(SIZES[sz.idx][0]) + ')</span>');
+    out(sec, 'ampnote', I > am ? note('bad', '<b>Overloaded.</b> ' + nf(I, 1) + ' A is more than this cable should carry continuously (≈ ' + nf(am, 0) + ' A). It will run hot. Use thicker cable.') : I > 0.8 * am ? note('warn', 'Current is close to this cable\'s limit (≈ ' + nf(am, 0) + ' A). Go up a size for margin.') : '');
+  };
+
+  /* ---------- 2. wire size ---------- */
+  CALCS.wiresize = function (sec) {
+    var Vs = num(sec, 'vs'), L = len(sec), I = loadA(sec, Vs), pct = num(sec, 'pct'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ready(sec, ok(Vs, L, I, pct))) return;
+    var sz = sizeFor(I, L, Vs, pct, mat, T);
+    if (sz.beyond) {
+      out(sec, 'headline', '<span class="big">Too big for one cable</span>');
+      out(sec, 'why', note('bad', 'You need at least <b>' + nf(sz.need, 1) + ' mm²</b> for the voltage drop' + (sz.iAmp < 0 ? ' and more current capacity than the largest listed cable' : '') + '. Run two cables in parallel, shorten the run, move the battery closer, or use a higher system voltage (24 V needs half the current).'));
+      out(sec, 'rows', '');
+      return;
+    }
+    var rec = SIZES[sz.idx][0];
+    out(sec, 'headline', '<span class="big">' + mmLabel(rec) + '</span><span class="sub">≈ ' + awgLabel(rec) + ' or thicker</span>');
+    var byDrop = sz.iDrop >= 0 ? SIZES[sz.iDrop][0] : null, byAmp = sz.iAmp >= 0 ? SIZES[sz.iAmp][0] : null;
+    var limiter = sz.iDrop >= sz.iAmp ? 'voltage drop' : 'current rating';
+    out(sec, 'why', note('info', 'Voltage drop alone needs <b>' + nf(sz.need, 2) + ' mm²</b> (so ' + mmLabel(byDrop) + '). Current rating alone needs <b>' + mmLabel(byAmp) + '</b>. The ' + limiter + ' is the limiting factor, so the answer is the bigger of the two.'));
+    var rows = '', from = Math.max(0, sz.idx - 1), to = Math.min(SIZES.length - 1, sz.idx + 3);
+    for (var i = from; i <= to; i++) {
+      var a = SIZES[i][0], vd = dropFor(a, I, L, mat, T), p = vd / Vs * 100, am = ampacity(a, mat);
+      var pass = p <= pct && am >= I, why = p > pct ? 'Too much drop' : (am < I ? 'Overloaded' : 'OK');
+      rows += '<tr' + (i === sz.idx ? ' class="rec"' : '') + '><td>' + a + ' mm²</td><td>' + awgLabel(a).replace(' AWG', '') + '</td><td>' + nf(vd, 2) + ' V (' + nf(p, 1) + '%)</td><td>' + nf(am, 0) + ' A</td><td class="' + (pass ? 'ok' : 'no') + '">' + (pass ? '✓ OK' : '✗ ' + why) + '</td></tr>';
+    }
+    out(sec, 'rows', rows);
+  };
+
+  /* ---------- 3. fuse ---------- */
+  CALCS.fuse = function (sec) {
+    var Vs = num(sec, 'vs'), I = loadA(sec, Vs), f = parseFloat(str(sec, 'type')), A = num(sec, 'wire'), mat = str(sec, 'mat');
+    if (!ready(sec, ok(Vs, I, f))) return;
+    var minA = I * f, rec = fuseAtLeast(minA);
+    if (rec === null) {
+      out(sec, 'headline', '<span class="big">Over 600 A</span>');
+      out(sec, 'min', nf(minA, 0) + ' A'); out(sec, 'ftype', 'Class T / MRBF, specialist'); out(sec, 'minwire', '–');
+      out(sec, 'check', note('warn', 'This is a very large circuit. Get a qualified installer to specify it.'));
+      return;
+    }
+    out(sec, 'headline', '<span class="big">' + rec + ' A</span><span class="sub">fuse</span>');
+    out(sec, 'min', nf(minA, 1) + ' A');
+    out(sec, 'ftype', fuseKind(rec));
+    var mw = null, i;
+    for (i = 0; i < SIZES.length; i++) if (ampacity(SIZES[i][0], mat) >= rec) { mw = SIZES[i][0]; break; }
+    out(sec, 'minwire', mw ? mmLabel(mw) + ' <span class="sub">(' + awgLabel(mw) + ')</span>' : 'Larger than listed');
+    var chk = '';
+    if (isFinite(A) && A > 0) {
+      var am = ampacity(A, mat), maxF = fuseAtMost(am);
+      if (rec > am) chk = note('bad', '<b>Cable too small for this fuse.</b> ' + mmLabel(A) + ' is only good for ≈ ' + nf(am, 0) + ' A' + (maxF ? ' (largest safe fuse ' + maxF + ' A)' : '') + '. Use ' + (mw ? mmLabel(mw) : 'thicker cable') + ' or bigger.');
+      else chk = note('good', '<b>Cable OK.</b> ' + mmLabel(A) + ' carries ≈ ' + nf(am, 0) + ' A, which is above the ' + rec + ' A fuse.');
+    }
+    out(sec, 'check', chk);
+  };
+
+  /* ---------- 4. Ohm ---------- */
+  CALCS.ohm = function (sec, e) {
+    var names = ['v', 'i', 'r', 'p'];
+    function el(n) { return sec.querySelector('[name="' + n + '"]'); }
+    if (!sec._q) sec._q = ['v', 'p'];
+    if (e && e.type === 'input' && e.target && names.indexOf(e.target.name) >= 0) {
+      var n = e.target.name, val = parseFloat(e.target.value);
+      sec._q = sec._q.filter(function (x) { return x !== n; });
+      if (isFinite(val) && val > 0) sec._q.push(n);
+      if (sec._q.length > 2) sec._q = sec._q.slice(-2);
+    }
+    var q = sec._q;
+    names.forEach(function (n) {
+      var inQ = q.indexOf(n) >= 0;
+      el(n).classList.toggle('computed', !inQ && q.length === 2);
+      if (!inQ && q.length < 2) el(n).value = '';
+    });
+    var r = $('[data-results]', sec), em = $('[data-empty]', sec);
+    if (q.length < 2) { r.hidden = true; em.hidden = false; return; }
+    function g(n) { return parseFloat(el(n).value); }
+    function has(a, b) { return q.indexOf(a) >= 0 && q.indexOf(b) >= 0; }
+    var V, I, R, P;
+    if (has('v', 'i')) { V = g('v'); I = g('i'); R = V / I; P = V * I; }
+    else if (has('v', 'r')) { V = g('v'); R = g('r'); I = V / R; P = V * V / R; }
+    else if (has('v', 'p')) { V = g('v'); P = g('p'); I = P / V; R = V * V / P; }
+    else if (has('i', 'r')) { I = g('i'); R = g('r'); V = I * R; P = I * I * R; }
+    else if (has('i', 'p')) { I = g('i'); P = g('p'); V = P / I; R = P / (I * I); }
+    else { R = g('r'); P = g('p'); V = Math.sqrt(P * R); I = Math.sqrt(P / R); }
+    var vals = { v: V, i: I, r: R, p: P };
+    names.forEach(function (n) { if (q.indexOf(n) < 0) el(n).value = +vals[n].toPrecision(4); });
+    r.hidden = false; em.hidden = true;
+    out(sec, 'headline', '<span class="big">' + nf(V, 2) + ' V · ' + nf(I, 2) + ' A · ' + nf(P, 1) + ' W</span>');
+    out(sec, 'formulas',
+      '<div><dt>Current</dt><dd>' + nf(I, 3) + ' A</dd></div><div><dt>Power</dt><dd>' + nf(P, 2) + ' W</dd></div><div><dt>Resistance</dt><dd>' + nf(R, 3) + ' Ω</dd></div><div><dt>Formulas</dt><dd><span class="formula">V = I × R</span> <span class="formula">P = V × I</span></dd></div>');
+  };
+
+  /* ---------- 5. inverter ---------- */
+  CALCS.inverter = function (sec) {
+    var W = num(sec, 'watts'), surge = num(sec, 'surge'), sys = num(sec, 'sys'), eff = num(sec, 'eff') / 100, L = len(sec), pct = num(sec, 'pct'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ready(sec, ok(W, sys, eff, L, pct) && eff <= 1)) return;
+    var Vlow = sys * 0.875, Inom = W / (eff * sys), Ilow = W / (eff * Vlow);
+    out(sec, 'headline', '<span class="big">' + nf(Ilow, 0) + ' A</span><span class="sub">design current from the battery</span>');
+    out(sec, 'inom', nf(Inom, 0) + ' A <span class="sub">(at ' + sys + ' V)</span>');
+    out(sec, 'ilow', nf(Ilow, 0) + ' A <span class="sub">(at ' + nf(Vlow, 1) + ' V)</span>');
+    var srow = $('[data-row="surge"]', sec);
+    if (ok(surge)) { srow.hidden = false; out(sec, 'isurge', nf(surge / (eff * Vlow), 0) + ' A <span class="sub">(a few seconds)</span>'); } else srow.hidden = true;
+    var fuse = fuseAtLeast(Ilow * 1.25);
+    out(sec, 'fuse', fuse ? fuse + ' A <span class="sub">(' + fuseKind(fuse) + ')</span>' : 'Above 600 A: specialist');
+    var sz = cableFor(Ilow, L, sys, pct, mat, T, fuse);
+    out(sec, 'cable', sz.beyond ? 'Too big for one cable: use two in parallel or a higher voltage' : mmLabel(SIZES[sz.idx][0]) + ' <span class="sub">(' + awgLabel(SIZES[sz.idx][0]) + ')</span>');
+    out(sec, 'bat', '≥ ' + nf(Math.ceil(Inom * 4 / 10) * 10, 0) + ' Ah lead-acid, or ≥ ' + nf(Math.ceil(Inom * 2 / 10) * 10, 0) + ' Ah lithium');
+    var n = '';
+    n += note('info', 'The AC side is only about <b>' + nf(W / 230, 1) + ' A at 230 V</b>. Inverters also draw 0.5–1.5 A on standby, so switch them off when not in use. Heating loads (kettle, hair dryer, heater) use huge power from a battery: avoid them.');
+    out(sec, 'note', n);
+  };
+
+  /* ---------- 6. runtime ---------- */
+  var CHEM = { flooded: { dod: 50, k: 1.25 }, agm: { dod: 50, k: 1.15 }, gel: { dod: 50, k: 1.15 }, lfp: { dod: 90, k: 1.03 } };
+  CALCS.runtime = function (sec, e) {
+    var chem = str(sec, 'chem');
+    if (e && e.target && e.target.name === 'chem') sec.querySelector('[name="usable"]').value = CHEM[chem].dod;
+    var C = num(sec, 'ah'), V = num(sec, 'v'), usable = num(sec, 'usable') / 100, load = num(sec, 'load'), unit = str(sec, 'loadUnit');
+    var invRow = $('[data-ref="invwrap"]', sec);
+    invRow.hidden = unit !== 'w';
+    if (!ready(sec, ok(C, V, usable, load) && usable <= 1)) return;
+    var inv = unit === 'w' && checked(sec, 'inv'), I = unit === 'a' ? load : load / (V * (inv ? 0.9 : 1));
+    var k = CHEM[chem].k, H = 20, x = C / (I * H);
+    var tFull = (C / I) * (x < 1 ? Math.pow(x, k - 1) : 1), hours = tFull * usable, effAh = I * hours;
+    out(sec, 'headline', '<span class="big">' + dur(hours) + '</span>' + (hours >= 24 && hours < 48 ? '<span class="sub">(' + nf(hours / 24, 1) + ' days)</span>' : ''));
+    out(sec, 'draw', nf(I, 2) + ' A' + (inv ? ' <span class="sub">(incl. inverter loss)</span>' : ''));
+    out(sec, 'energy', nf(effAh * V, 0) + ' Wh <span class="sub">(' + nf(effAh, 1) + ' Ah)</span>');
+    out(sec, 'eff', nf(C * usable, 0) + ' Ah nominal → ' + nf(effAh, 0) + ' Ah real');
+    var n = '';
+    if (chem === 'lfp') n = I > C ? note('warn', 'That is a draw over 1C. Check the battery\'s maximum discharge rating.') : '';
+    else if (I > C / 5) n = note('warn', 'A heavy draw for this battery (more than C/5). Lead-acid delivers noticeably less and ages quicker at this rate, and the Peukert correction has already reduced the runtime.');
+    n += note('info', 'This is a best case. Cold weather, old batteries and voltage-sensitive loads that cut out early all reduce real runtime.');
+    out(sec, 'note', n);
+  };
+
+  /* ---------- 7. charge ---------- */
+  CALCS.charge = function (sec) {
+    var chem = str(sec, 'chem'), C = num(sec, 'ah'), A = num(sec, 'amps'), soc = num(sec, 'soc'), tgt = num(sec, 'target'), other = num(sec, 'other') || 0;
+    if (!ready(sec, ok(C, A) && isFinite(soc) && isFinite(tgt) && tgt > soc && soc >= 0 && tgt <= 100)) return;
+    var net = A - other;
+    if (net <= 0) {
+      ready(sec, true);
+      out(sec, 'headline', '<span class="big">Never</span>');
+      out(sec, 'need', nf(C * (tgt - soc) / 100, 1) + ' Ah'); out(sec, 'crate', '–'); out(sec, 'net', nf(net, 1) + ' A');
+      out(sec, 'note', note('bad', 'The load is taking as much current as the charger makes, so the battery will not charge. Use a bigger charger or switch the load off.'));
+      return;
+    }
+    var need = C * (tgt - soc) / 100, t;
+    if (chem === 'lfp') t = need / (net * 0.95);
+    else {
+      var bulk = Math.max(0, Math.min(tgt, 80) - soc) * C / 100, absorb = Math.max(0, tgt - Math.max(soc, 80)) * C / 100;
+      t = bulk / (net * 0.85) + absorb / (net * 0.85 * 0.4);
+    }
+    out(sec, 'headline', '<span class="big">' + dur(t) + '</span>');
+    out(sec, 'need', nf(need, 1) + ' Ah');
+    var cr = A / C;
+    out(sec, 'crate', nf(cr, 2) + ' C <span class="sub">(' + nf(cr * 100, 0) + ' % of capacity per hour)</span>');
+    out(sec, 'net', nf(net, 1) + ' A');
+    var n = '';
+    if (chem === 'lead') {
+      n += note('info', 'Lead-acid charges quickly up to about 80 % and then tapers off. The last 20 % takes roughly as long as the first 80 %, which is included in this estimate (rule of thumb).');
+      if (cr > 0.3) n += note('warn', 'Charging at over 0.3C. Many flooded batteries want 0.2C or less and AGM about 0.3–0.4C at most. Check the battery\'s maximum charge current.');
+    } else if (cr > 0.5) n += note('warn', 'Charging at over 0.5C. Many LiFePO4 batteries are rated for 0.5C–1C. Check the battery\'s maximum charge current.');
+    n += note('info', 'Alternators and DC-DC chargers rarely give full rated output when hot. Solar chargers only do so in full sun, so treat this as a best-case time.');
+    out(sec, 'note', n);
+  };
+
+  /* ---------- 7b. DC-DC / alternator ---------- */
+  CALCS.dcdc = function (sec) {
+    var Io = num(sec, 'out'), Vb = num(sec, 'sys'), Vin = num(sec, 'vin'), eff = num(sec, 'eff') / 100, Li = num(sec, 'inlen'), Lo = num(sec, 'outlen'), pct = num(sec, 'pct'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ready(sec, ok(Io, Vb, Vin, eff, Li, Lo, pct) && eff <= 1)) return;
+    var Pout = Io * Vb * 1.2, Pin = Pout / eff, Iin = Pin / Vin;   // charges at about 1.2 × nominal (14.4 V on 12 V)
+    out(sec, 'headline', '<span class="big">' + nf(Iin, 0) + ' A</span><span class="sub">drawn from the vehicle</span>');
+    out(sec, 'pout', nf(Pout, 0) + ' W <span class="sub">(' + nf(Io, 0) + ' A at ' + nf(Vb * 1.2, 1) + ' V)</span>');
+    out(sec, 'loss', nf(Pin - Pout, 0) + ' W');
+    var fi = fuseAtLeast(Iin * 1.25), fo = fuseAtLeast(Io * 1.25);
+    out(sec, 'infuse', fi ? fi + ' A' : 'Specialist');
+    out(sec, 'outfuse', fo ? fo + ' A' : 'Specialist');
+    var si = cableFor(Iin, Li, Vin, pct, mat, T, fi), so = cableFor(Io, Lo, Vb, pct, mat, T, fo);
+    function cab(sz) { return sz.beyond ? 'Too long for one cable: shorten, or two in parallel' : mmLabel(SIZES[sz.idx][0]) + ' <span class="sub">(' + awgLabel(SIZES[sz.idx][0]) + ')</span>'; }
+    out(sec, 'incable', cab(si));
+    out(sec, 'outcable', cab(so));
+    var n = '';
+    n += note('info', '<b>Why the input is thick:</b> the charger needs a healthy voltage at its input to start and keep running (many want 12.5–13 V to start and cut out below about 11.5–12 V). A long thin tow-plug cable loses that voltage and the charger stalls or trickles. Keep the input drop low.');
+    n += note('info', '<b>Newer vehicles:</b> many late-model tow vehicles have a smart (variable-voltage) alternator. A basic split-charge relay or isolator may barely charge the caravan battery. Use a DC-DC charger rated for smart alternators. Also check the alternator has about ' + nf(Iin, 0) + ' A to spare once the vehicle\'s own loads are running.');
+    out(sec, 'note', n);
+  };
+
+  /* ---------- 8. budget ---------- */
+  // [name, watts, hours/day, runs on 230 V through an inverter]
+  var PRESETS = [
+    ['12 V compressor fridge (average, while running)', 45, 8], ['LED camp lights', 10, 4], ['Phone / USB charging', 10, 2], ['Laptop', 65, 3],
+    ['12 V water pump', 60, 0.5], ['12 V roof fan', 20, 6], ['Dash camera (parking mode)', 5, 24], ['Starlink Mini (average)', 30, 6],
+    ['Diesel heater (average)', 20, 8], ['12 V TV (24")', 35, 3], ['UHF radio (standby)', 4, 12], ['LED light bar', 100, 1], ['Inverter left on, no load', 12, 24],
+    ['Caravan LED lights (whole van)', 20, 5], ['Caravan gas heater / furnace fan', 25, 6], ['Outdoor awning LED strip', 15, 4],
+    ['Kettle (230 V)', 2000, 0.15, true], ['Microwave (230 V)', 1000, 0.15, true], ['Coffee machine (230 V)', 1200, 0.1, true], ['Hair dryer (230 V)', 1200, 0.1, true],
+    ['Laptop charger (230 V)', 65, 3, true], ['TV (230 V, 32")', 50, 3, true]
+  ];
+  function addRow(sec, d) {
+    d = d || {};
+    var tr = document.createElement('div');
+    tr.className = 'brow';
+    tr.innerHTML = '<label class="cell name"><span class="cap">Appliance</span><input type="text" data-k="n" placeholder="Appliance" aria-label="Appliance name"></label>' +
+      '<label class="cell"><span class="cap">Watts</span><input type="number" inputmode="decimal" min="0" step="any" data-k="w" aria-label="Watts"></label>' +
+      '<label class="cell"><span class="cap">Hours/day</span><input type="number" inputmode="decimal" min="0" max="24" step="any" data-k="h" aria-label="Hours per day"></label>' +
+      '<label class="cell"><span class="cap">Qty</span><input type="number" inputmode="numeric" min="1" step="1" data-k="q" aria-label="Quantity"></label>' +
+      '<label class="cell tick"><span class="cap">AC</span><input type="checkbox" data-k="ac" aria-label="Runs on 230 V AC through inverter"></label>' +
+      '<button type="button" class="rm" data-act="remove" aria-label="Remove row">×</button>';
+    tr.querySelector('[data-k=n]').value = d.n || '';
+    tr.querySelector('[data-k=w]').value = d.w === undefined ? '' : d.w;
+    tr.querySelector('[data-k=h]').value = d.h === undefined ? '' : d.h;
+    tr.querySelector('[data-k=q]').value = d.q || 1;
+    tr.querySelector('[data-k=ac]').checked = !!d.ac;
+    $('[data-rows]', sec).appendChild(tr);
+  }
+  CALCS.budget = function (sec) {
+    var eff = (num(sec, 'eff') || 90) / 100, V = num(sec, 'v'), usable = num(sec, 'chem') / 100, days = num(sec, 'days');
+    var wh = 0, peak = 0;
+    $$('.brow', sec).forEach(function (r) {
+      var w = parseFloat(r.querySelector('[data-k=w]').value) || 0, h = parseFloat(r.querySelector('[data-k=h]').value) || 0,
+        q = parseFloat(r.querySelector('[data-k=q]').value) || 0, ac = r.querySelector('[data-k=ac]').checked, f = ac ? 1 / eff : 1;
+      wh += w * h * q * f; peak += w * q * f;
+    });
+    sec._wh = wh;
+    if (!ready(sec, wh > 0 && ok(V, eff, usable, days))) return;
+    var ah = wh / V, need = ah * days / usable;
+    out(sec, 'headline', '<span class="big">' + nf(ah, 0) + ' Ah</span><span class="sub">per day at ' + nf(V, 0) + ' V</span>');
+    out(sec, 'wh', nf(wh, 0) + ' Wh');
+    out(sec, 'ahday', nf(ah, 1) + ' Ah');
+    out(sec, 'peak', nf(peak, 0) + ' W <span class="sub">(' + nf(peak / V, 0) + ' A)</span>');
+    out(sec, 'bat', '≥ ' + nf(Math.ceil(need / 10) * 10, 0) + ' Ah <span class="sub">(' + days + (days === 1 ? ' day' : ' days') + ', ' + nf(usable * 100, 0) + ' % usable)</span>');
+  };
+
+  /* ---------- 9. solar ---------- */
+  var CTL = [10, 15, 20, 30, 40, 50, 60, 70, 80, 100];
+  CALCS.solar = function (sec) {
+    var wh = num(sec, 'wh'), V = num(sec, 'v'), psh = num(sec, 'psh'), eff = num(sec, 'ctl'), pw = num(sec, 'pw');
+    if (!ready(sec, ok(wh, V, psh, eff, pw))) return;
+    var needW = wh / (psh * eff), n = Math.max(1, Math.ceil(needW / pw - 1e-9)), arr = n * pw;
+    var mppt = eff >= 0.75, cur = mppt ? arr / V * 1.25 : arr / (1.5 * V) * 1.25, std = CTL.filter(function (c) { return c >= cur - 1e-9; })[0];
+    out(sec, 'headline', '<span class="big">' + n + ' × ' + nf(pw, 0) + ' W</span><span class="sub">= ' + nf(arr, 0) + ' W of panels</span>');
+    out(sec, 'need', nf(needW, 0) + ' W');
+    out(sec, 'ctl', (std ? std + ' A ' : '> 100 A ') + (mppt ? 'MPPT' : 'PWM') + ' <span class="sub">(≥ ' + nf(cur, 0) + ' A with 25 % margin)</span>');
+    out(sec, 'harvest', nf(arr * psh * eff, 0) + ' Wh/day <span class="sub">(' + nf(arr * psh * eff / wh * 100, 0) + ' % of your use)</span>');
+  };
+
+  /* ---------- 9b. solar array wiring ---------- */
+  CALCS.array = function (sec) {
+    var voc = num(sec, 'voc'), vmp = num(sec, 'vmp'), imp = num(sec, 'imp'), isc = num(sec, 'isc'), coef = num(sec, 'coef'), cold = num(sec, 'cold'),
+      s = Math.round(num(sec, 's')), p = Math.round(num(sec, 'p')), maxV = num(sec, 'maxv'), maxA = num(sec, 'maxa'), vb = num(sec, 'vb'),
+      L = len(sec), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ready(sec, ok(voc, vmp, imp, isc, s, p, maxV, maxA, vb, L) && isFinite(coef) && isFinite(cold))) return;
+    var vocCold = voc * s * (1 + coef / 100 * (cold - 25)), vmpA = vmp * s, impA = imp * p, iscA = isc * p, P = vmpA * impA;
+    var chg = P * 0.97 / (vb * 1.2);
+    out(sec, 'headline', '<span class="big">' + nf(P, 0) + ' W</span><span class="sub">' + s + ' in series × ' + p + ' in parallel = ' + s * p + ' panels</span>');
+    var status = '';
+    if (vocCold > maxV) status = note('bad', '<b>Danger: too many panels in series.</b> At ' + nf(cold, 0) + ' °C the array reaches about ' + nf(vocCold, 1) + ' V, above the regulator\'s ' + nf(maxV, 0) + ' V limit. This can destroy the regulator instantly. Reduce panels in series or use a regulator with a higher PV voltage rating.');
+    else if (vocCold > 0.9 * maxV) status = note('warn', '<b>Very close to the voltage limit.</b> ' + nf(vocCold, 1) + ' V of ' + nf(maxV, 0) + ' V at ' + nf(cold, 0) + ' °C. Leave a margin of about 10 %.');
+    else if (vmpA < vb * 1.2 + 3) status = note('warn', '<b>Array voltage too low.</b> ' + nf(vmpA, 1) + ' V working voltage is not enough to charge a ' + vb + ' V battery reliably (about ' + nf(vb * 1.2 + 3, 0) + ' V or more is needed). Put more panels in series.');
+    else status = note('good', '<b>Voltage OK.</b> Even on a cold morning the array stays below the regulator limit.');
+    if (chg > maxA) status += note('warn', 'The array could make about ' + nf(chg, 0) + ' A but the regulator only handles ' + nf(maxA, 0) + ' A. It will clip and waste the extra. Use a larger regulator or fewer panels.');
+    out(sec, 'status', status);
+    out(sec, 'vocold', nf(vocCold, 1) + ' V <span class="sub">(limit ' + nf(maxV, 0) + ' V)</span>');
+    out(sec, 'vmpa', nf(vmpA, 1) + ' V');
+    out(sec, 'ia', nf(impA, 1) + ' A / ' + nf(iscA, 1) + ' A');
+    out(sec, 'chg', nf(chg, 0) + ' A <span class="sub">(max ' + nf(maxA, 0) + ' A)</span>');
+    var sz = sizeFor(iscA * 1.25, L, vmpA, 3, mat, T);
+    out(sec, 'cable', sz.beyond ? 'Too big: use a higher array voltage' : mmLabel(SIZES[sz.idx][0]) + ' <span class="sub">(' + awgLabel(SIZES[sz.idx][0]) + ')</span>');
+    var n = '';
+    n += note('info', '<b>Series</b> adds voltage and keeps the current (and cable) small. <b>Parallel</b> adds current. Higher array voltage means thinner panel cable and less loss, so series is usually better as long as you stay under the regulator limit.');
+    if (p >= 3) n += note('warn', 'With 3 or more strings in parallel, each string needs its own fuse (about 1.5 × Isc, i.e. ' + (fuseAtLeast(isc * 1.5) || '') + ' A) in case of a fault.');
+    n += note('info', 'Use proper solar cable (UV-resistant, double-insulated) and fit a DC isolator or breaker between the panels and regulator. Connect the regulator to the battery <em>first</em>, then the panels. Do not mix different panel models in one string.');
+    out(sec, 'note', n);
+  };
+
+  /* ---------- 10. bank ---------- */
+  CALCS.bank = function (sec) {
+    var bv = num(sec, 'bv'), bah = num(sec, 'bah'), s = Math.round(num(sec, 's')), p = Math.round(num(sec, 'p')), tv = num(sec, 'tv'), tah = num(sec, 'tah');
+    if (!ready(sec, ok(bv, bah, s, p))) return;
+    var V = bv * s, Ah = bah * p;
+    out(sec, 'headline', '<span class="big">' + nf(V, 1) + ' V · ' + nf(Ah, 0) + ' Ah</span>');
+    out(sec, 'bv', nf(V, 1) + ' V <span class="sub">(' + s + ' in series)</span>');
+    out(sec, 'bah', nf(Ah, 0) + ' Ah <span class="sub">(' + p + ' in parallel)</span>');
+    out(sec, 'wh', nf(V * Ah, 0) + ' Wh <span class="sub">(' + nf(V * Ah / 1000, 2) + ' kWh)</span>');
+    out(sec, 'n', s * p);
+    if (ok(tv, tah)) {
+      var ns = Math.ceil(tv / bv - 1e-9), np = Math.ceil(tah / bah - 1e-9);
+      out(sec, 'target', note('good', 'For <b>' + nf(tv, 1) + ' V / ' + nf(tah, 0) + ' Ah</b> you need <b>' + ns + ' in series × ' + np + ' in parallel = ' + ns * np + ' batteries</b>, giving ' + nf(ns * bv, 1) + ' V and ' + nf(np * bah, 0) + ' Ah.'));
+    } else out(sec, 'target', '');
+  };
+
+  /* ---------- 11. state of charge ---------- */
+  var SOC_LEAD = [[10.5,0],[11.51,10],[11.66,20],[11.81,30],[11.96,40],[12.10,50],[12.24,60],[12.37,70],[12.50,80],[12.62,90],[12.73,100]];
+  var SOC_LFP = [[10.0,0],[12.0,5],[12.8,10],[13.0,20],[13.13,30],[13.17,40],[13.2,50],[13.23,60],[13.27,70],[13.3,80],[13.4,90],[13.6,100]];
+  CALCS.soc = function (sec) {
+    var chem = str(sec, 'chem'), mult = num(sec, 'sys'), v = num(sec, 'volts');
+    if (!ready(sec, ok(v, mult))) return;
+    var v12 = v / mult, pct = Math.round(interp(chem === 'lfp' ? SOC_LFP : SOC_LEAD, v12) / 5) * 5;
+    out(sec, 'headline', '<span class="big">≈ ' + pct + ' %</span><span class="sub">at ' + nf(v12, 2) + ' V (12 V equivalent)</span>');
+    $('[data-soc-marker]', sec).style.left = pct + '%';
+    var n = '';
+    if (!checked(sec, 'rested')) n += note('warn', '<b>Not rested.</b> A battery under load reads lower than its real charge, and one that was just charged reads higher (“surface charge”). Let it rest at least 2 hours for a useful number.');
+    if (chem === 'lead' && v12 > 12.9) n += note('info', 'This reads like a battery that is being charged or has just been. Let it settle before judging it.');
+    if (chem === 'lfp') n += note('info', 'Lithium voltage is very flat between about 20 % and 90 %, so voltage is a poor gauge. Use a battery monitor (shunt) or the BMS reading for anything better than a rough idea.');
+    else if (pct <= 50) n += note('warn', 'At 50 % or below. Deeper discharge shortens lead-acid life, so recharge soon. Under 20 % risks permanent damage.');
+    out(sec, 'note', n);
+  };
+
+  /* ============ wire up all calculators ============ */
+  $$('[data-calc]').forEach(function (sec) {
+    var fn = CALCS[sec.dataset.calc];
+    if (!fn) return;
+    var run = function (e) { fn(sec, e); };
+    sec.addEventListener('input', run);
+    if (sec.dataset.calc !== 'ohm') sec.addEventListener('change', run);
+  });
+
+  /* budget starter rows + presets */
+  var budget = $('#budget');
+  var ps = $('[data-presets]', budget);
+  ps.innerHTML = PRESETS.map(function (p, i) { return '<option value="' + i + '">' + p[0] + ' (' + p[1] + ' W)</option>'; }).join('');
+  [[0, 0], [1, 0], [2, 0], [3, 0]].forEach(function (x) { var p = PRESETS[x[0]]; addRow(budget, { n: p[0], w: p[1], h: p[2] }); });
+
+  /* click actions */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]');
+    if (!b) return;
+    var act = b.dataset.act;
+    if (act === 'add-preset') { var p = PRESETS[+ps.value]; addRow(budget, { n: p[0], w: p[1], h: p[2], ac: p[3] }); CALCS.budget(budget); }
+    else if (act === 'add-blank') { addRow(budget, {}); var last = $$('.brow', budget).pop(); last.querySelector('[data-k=n]').focus(); CALCS.budget(budget); }
+    else if (act === 'remove') { b.closest('.brow').remove(); CALCS.budget(budget); }
+    else if (act === 'send-solar') {
+      var solar = $('#solar');
+      solar.querySelector('[name="wh"]').value = Math.round(budget._wh || 0);
+      CALCS.solar(solar);
+      solar.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+    else if (act === 'ohm-clear') {
+      var oh = $('#ohm');
+      oh._q = [];
+      ['v', 'i', 'r', 'p'].forEach(function (n) { var el = oh.querySelector('[name="' + n + '"]'); el.value = ''; el.classList.remove('computed'); });
+      CALCS.ohm(oh);
+    }
+  });
+
+  /* run everything once */
+  $$('[data-calc]').forEach(function (sec) { var fn = CALCS[sec.dataset.calc]; if (fn) fn(sec); });
+
+  /* ============ reference tables ============ */
+  $('#ampTable').innerHTML = SIZES.map(function (s) {
+    var a = s[0], cu = ampacity(a, 'cu'), cca = ampacity(a, 'cca'), f = fuseAtMost(cu);
+    return '<tr><td>' + a + '</td><td>' + awgLabel(a).replace(' AWG', '') + '</td><td>' + nf(cu, 0) + ' A</td><td>' + nf(cca, 0) + ' A</td><td>' + (f ? f + ' A' : '–') + '</td><td class="wrapok">' + (USES[String(a)] || '') + '</td></tr>';
+  }).join('');
+  var LOADS = [
+    ['Dash camera', 5], ['UHF radio, transmitting', 24], ['Phone charger (fast)', 18], ['Laptop', 65], ['Compressor fridge (running)', 50], ['LED headlights (pair)', 60], ['Halogen H4 headlights (pair, low beam)', 110],
+    ['LED light bar (20")', 120], ['Water pump', 60], ['Wiper motor', 60], ['Fuel pump (petrol)', 70], ['Rear demister', 150], ['Electric radiator fan', 150], ['12 V socket (maximum rating)', 180],
+    ['Portable air compressor (twin)', 480], ['Starter motor (petrol)', 2400], ['Starter motor (diesel)', 3600], ['Winch, 9,500 lb at full load', 4800]
+  ];
+  $('#loadTable').innerHTML = LOADS.map(function (l) { return '<tr><td class="wrapok">' + l[0] + '</td><td>' + nf(l[1], 0) + ' W</td><td>' + nf(l[1] / 12, 1) + ' A</td></tr>'; }).join('');
+
+  /* ============ nav highlight ============ */
+  var links = $$('#navlist a'), map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          links.forEach(function (a) { a.classList.remove('on'); });
+          var a = map[en.target.id];
+          if (a) { a.classList.add('on'); var ul = a.parentNode.parentNode; var left = a.offsetLeft - ul.clientWidth / 2 + a.clientWidth / 2; try { ul.scrollTo({ left: left, behavior: 'smooth' }); } catch (x) { ul.scrollLeft = left; } }
+        }
+      });
+    }, { rootMargin: '-35% 0px -60% 0px' });
+    Object.keys(map).forEach(function (id) { var s = document.getElementById(id); if (s) io.observe(s); });
+  }
+
+})();
+</script>
+<!-- GoatCounter: cookie-free page-visit stats at https://psyphin.goatcounter.com/ (never sees calculator inputs). Paths are prefixed with the host, like the other PsyPhin tools: this page shows as dc-power.psyphin.co.za/ -->
+<script>window.goatcounter = { path: function (p) { return location.host + p; } };</script>
+<script data-goatcounter="https://psyphin.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
