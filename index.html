@@ -269,11 +269,49 @@ footer a { color: var(--accent); }
 @media (max-width: 440px) {
   .inputs { grid-template-columns: minmax(0, 1fr); }
 }
+/* ---------- explainer drawings (live SVG under each calculator) ---------- */
+.viz { margin: 22px 0 0; padding: 14px 14px 12px; border-radius: 14px; background: rgba(4, 8, 23, .5); border: 1px solid var(--border); min-width: 0; }
+.viz-svg { overflow-x: auto; scrollbar-width: thin; scrollbar-color: rgba(76, 201, 255, .3) transparent; }
+.viz svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.viz figcaption { margin-top: 10px; font-size: .88rem; line-height: 1.55; color: var(--text-muted); }
+.viz figcaption b { color: var(--text); }
+.viz-hint { display: none; margin: 6px 0 0; font-size: .75rem; color: var(--metal-dark); text-align: center; }
+@media (max-width: 700px) {
+  .viz-hint { display: block; }
+  .viz svg { min-width: 600px; }
+  .vt { font-size: 19px; } .vm { font-size: 16px; } .vh { font-size: 23px; }
+}
+.vt { fill: var(--text); font: 600 17px var(--font-body); }
+.vm { fill: var(--metal); font: 500 14px var(--font-body); }
+.vh { fill: var(--text); font: 700 21px var(--font-display); }
+.vtl { fill: #fff; font: 700 14px var(--font-body); paint-order: stroke; stroke: #0b1330; stroke-width: 3px; stroke-linejoin: round; }
+.vflow { fill: none; stroke-linecap: round; stroke-dasharray: 1 22; animation: vflow linear infinite; }
+@keyframes vflow { to { stroke-dashoffset: -23; } }
+.vpulse { animation: vpulse 2.2s ease-in-out infinite; }
+@keyframes vpulse { 0%, 100% { opacity: .12; } 50% { opacity: .5; } }
+.vblink { animation: vblink 1.6s ease-in-out infinite; }
+@keyframes vblink { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+.vheat { transform-box: fill-box; animation: vheat 2.2s ease-out infinite; }
+@keyframes vheat { 0% { opacity: 0; transform: translateY(10px); } 35% { opacity: .85; } 100% { opacity: 0; transform: translateY(-14px); } }
+.vbar { transition: width .5s ease; }
+@media (prefers-reduced-motion: reduce) { .vflow, .vpulse, .vblink, .vheat { animation: none; } .vbar { transition: none; } }
 @media print { .nav, .site-header-inner, .btn { display: none !important; } .calc { break-inside: avoid; box-shadow: none; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .meter i { transition: none; } }
 </style>
 </head>
 <body id="top">
+<!-- shared gradients, patterns and arrowheads for the explainer drawings -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="gBulb"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#ffc857" stop-opacity=".75"/><stop offset="1" stop-color="#ffc857" stop-opacity="0"/></radialGradient>
+    <linearGradient id="gCu" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaa862"/><stop offset="1" stop-color="#b8672a"/></linearGradient>
+    <linearGradient id="gFill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6bff"/><stop offset="1" stop-color="#4cc9ff"/></linearGradient>
+    <linearGradient id="gBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f6bff"/><stop offset="1" stop-color="#7c5cff"/></linearGradient>
+    <pattern id="pHatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="9" fill="#ff7a88" fill-opacity=".45"/></pattern>
+    <marker id="mArr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#a8b7d6"/></marker>
+  </defs>
+</svg>
+
 
 <header class="site-header">
   <div class="site-header-inner">
@@ -1240,6 +1278,388 @@ footer a { color: var(--accent); }
     else if (pct <= 50) n += note('warn', 'At 50 % or below. Deeper discharge shortens lead-acid life, so recharge soon. Under 20 % risks permanent damage.');
     out(sec, 'note', n);
   };
+
+  /* ============ explainer drawings ============
+     Each calculator gets a live SVG picture under it. The drawings only READ the calculator's inputs (the maths above is
+     untouched), so a drawing can never change an answer. They update in place (morph) so animations keep running while you type. */
+  var REDUCE = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var VC = { acc: '#4cc9ff', grn: '#2ee6a6', amb: '#ffc857', red: '#ff7a88', cop: '#cf7f3a', met: '#a8b7d6', vio: '#7c5cff', box: '#101a3c', ink: '#0b1330' };
+  var VIZ = {};
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function lvColor(l) { return l === 'good' ? VC.grn : l === 'warn' ? VC.amb : VC.red; }
+  function cabW(a) { return Math.max(3, Math.min(16, 2.2 + Math.sqrt(a) * 1.25)); }            // cable stroke width from its area
+  function fdur(I) { var sp = Math.min(90, 14 + 3.2 * I); return (23 / sp).toFixed(2) + 's'; }   // dot speed grows with current
+  function tx(x, y, t, cls, anc) { return '<text x="' + x + '" y="' + y + '" class="' + (cls || 'vm') + '"' + (anc ? ' text-anchor="' + anc + '"' : '') + '>' + t + '</text>'; }
+  function flowL(x1, y1, x2, y2, I, w) { return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" class="vflow" stroke="#eaf2ff" stroke-width="' + (w || 3.5) + '" style="animation-duration:' + fdur(I) + '"/>'; }
+  function flowP(d, I, w) { return '<path d="' + d + '" fill="none" class="vflow" stroke="#eaf2ff" stroke-width="' + (w || 3.5) + '" style="animation-duration:' + fdur(I) + '"/>'; }
+  function wire(x1, y1, x2, y2, w, col) { return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="' + (col || VC.cop) + '" stroke-width="' + w + '"/>'; }
+  function svgw(h, alt, inner) { return '<svg viewBox="0 0 1000 ' + h + '" role="img" aria-label="' + esc(alt) + '">' + inner + '</svg>'; }
+  function anim(attr, vals, kt, dur) { return REDUCE ? '' : '<animate attributeName="' + attr + '" values="' + vals.join(';') + '" keyTimes="' + kt.join(';') + '" dur="' + dur + 's" repeatCount="indefinite"/>'; }
+  function boxR(x, y, w, h, stroke) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="10" fill="' + VC.box + '" stroke="' + (stroke || VC.acc) + '" stroke-opacity=".55" stroke-width="1.5"/>'; }
+  function battBox(x, y, w, h, l1, l2) {
+    return '<rect x="' + (x + 12) + '" y="' + (y - 8) + '" width="18" height="9" rx="2" fill="' + VC.red + '"/><rect x="' + (x + w - 30) + '" y="' + (y - 8) + '" width="18" height="9" rx="2" fill="' + VC.met + '"/>' +
+      boxR(x, y, w, h) + tx(x + w / 2, y + h * 0.4, l1, 'vm', 'middle') + tx(x + w / 2, y + h * 0.78, l2, 'vh', 'middle');
+  }
+  function heat(x, y, n) {
+    var s = '', i;
+    for (i = 0; i < n; i++) s += '<path d="M' + (x + i * 18 - (n - 1) * 9) + ' ' + y + ' q 6 -9 0 -18 t 0 -18" fill="none" stroke="' + VC.amb + '" stroke-width="3" stroke-linecap="round" class="vheat" style="animation-delay:' + (i * 0.55) + 's"/>';
+    return s;
+  }
+  function strands(cx, cy, r) {
+    var rs = r / 5.2, pts = [[0, 0]], i, a, b, s = '';
+    for (i = 0; i < 6; i++) {
+      a = i * Math.PI / 3; b = a + Math.PI / 6;
+      pts.push([2 * rs * Math.cos(a), 2 * rs * Math.sin(a)], [4 * rs * Math.cos(a), 4 * rs * Math.sin(a)], [2 * Math.sqrt(3) * rs * Math.cos(b), 2 * Math.sqrt(3) * rs * Math.sin(b)]);
+    }
+    pts.forEach(function (p) { s += '<circle cx="' + (cx + p[0]).toFixed(1) + '" cy="' + (cy + p[1]).toFixed(1) + '" r="' + (rs * 0.9).toFixed(1) + '" fill="none" stroke="#7a4310" stroke-opacity=".6"/>'; });
+    return s;
+  }
+
+  /* --- put a drawing under a calculator and update it in place --- */
+  function morph(a, b) {
+    var i, ac, bc;
+    if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { a.parentNode.replaceChild(b, a); return; }
+    if (a.nodeType === 3) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+    if (a.nodeType !== 1) return;
+    ac = Array.prototype.slice.call(a.childNodes); bc = Array.prototype.slice.call(b.childNodes);
+    if (ac.length !== bc.length) { a.parentNode.replaceChild(b, a); return; }
+    for (i = a.attributes.length - 1; i >= 0; i--) { if (!b.hasAttribute(a.attributes[i].name)) a.removeAttribute(a.attributes[i].name); }
+    for (i = 0; i < b.attributes.length; i++) { if (a.getAttribute(b.attributes[i].name) !== b.attributes[i].value) a.setAttribute(b.attributes[i].name, b.attributes[i].value); }
+    for (i = 0; i < ac.length; i++) morph(ac[i], bc[i]);
+  }
+  function viz(sec, markup, cap) {
+    var fig = sec._viz, host, t, next;
+    if (!fig) {
+      fig = document.createElement('figure'); fig.className = 'viz';
+      fig.innerHTML = '<div class="viz-svg"></div><p class="viz-hint" aria-hidden="true">↔ Swipe the drawing sideways to see all of it</p><figcaption></figcaption>';
+      sec.appendChild(fig); sec._viz = fig;
+    }
+    fig.hidden = false;
+    host = fig.firstChild;
+    t = document.createElement('template'); t.innerHTML = markup.trim(); next = t.content.firstChild;
+    if (host.firstChild) morph(host.firstChild, next); else host.appendChild(next);
+    fig.lastChild.innerHTML = cap;
+  }
+  function vizHide(sec) { if (sec._viz) sec._viz.hidden = true; }
+
+  /* ---------- voltage drop: a circuit with a dimming bulb ---------- */
+  VIZ.vdrop = function (sec) {
+    var Vs = num(sec, 'vs'), L = len(sec), I = loadA(sec, Vs), A = num(sec, 'wire'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ok(Vs, L, I, A)) return null;
+    var r = resist(mat, T) * 2 * L / A, vd = I * r, pct = vd / Vs * 100, vl = Math.max(0, Vs - vd), lv = pct <= 3 ? 'good' : pct <= 10 ? 'warn' : 'bad';
+    var sw = cabW(A), col = lvColor(lv), hh = Math.min(1, pct / 12) * 52, b = Math.pow(vl / Vs, 3), fw = Math.max(3, Math.min(6, sw * 0.5)), m = '';
+    [[70, 130, 870], [200, 870, 130]].forEach(function (w) {
+      m += '<line x1="130" y1="' + w[0] + '" x2="870" y2="' + w[0] + '" stroke="' + col + '" stroke-opacity=".28" stroke-width="' + (sw + 9) + '" stroke-linecap="round"/>' + wire(130, w[0], 870, w[0], sw) + flowL(w[1], w[0], w[2], w[0], I, fw);
+    });
+    m += battBox(30, 60, 100, 150, 'Battery', nf(Vs, 1) + ' V');
+    m += boxR(870, 60, 90, 150) + '<circle cx="915" cy="125" r="54" fill="url(#gBulb)" style="opacity:' + b.toFixed(3) + '"/>' +
+      '<circle cx="915" cy="125" r="17" fill="' + VC.amb + '" fill-opacity="' + (0.2 + 0.8 * b).toFixed(3) + '" stroke="' + VC.amb + '"/>' + tx(915, 86, 'Load', 'vm', 'middle') + tx(915, 196, nf(vl, 2) + ' V', 'vh', 'middle');
+    m += '<line x1="170" y1="108" x2="830" y2="108" stroke="' + VC.met + '" stroke-dasharray="5 5" stroke-opacity=".6"/>' +
+      '<polygon points="170,108 830,108 830,' + (108 + hh).toFixed(1) + '" fill="' + col + '" fill-opacity=".22"/>' +
+      '<line x1="170" y1="108" x2="830" y2="' + (108 + hh).toFixed(1) + '" stroke="' + col + '" stroke-width="3" stroke-linecap="round"/>' +
+      tx(170, 98, 'Voltage along the cable', 'vm') + tx(830, (108 + hh + 20).toFixed(1), '−' + nf(vd, 2) + ' V (' + nf(pct, 1) + ' %)', 'vt', 'end');
+    m += tx(500, 50, 'positive cable →', 'vm', 'middle') + tx(500, 226, '← return cable', 'vm', 'middle') + tx(500, 254, nf(L, 1) + ' m each way · ' + nf(A, 1) + ' mm² · ' + nf(I, 1) + ' A', 'vt', 'middle');
+    return {
+      svg: svgw(266, 'Circuit with a battery, a cable and a bulb showing the voltage lost along the cable', m),
+      cap: '<b>The cable is a resistor.</b> Pushing ' + nf(I, 1) + ' A through ' + nf(2 * L, 1) + ' m of cable (there and back) uses up ' + nf(vd, 2) + ' V, so the load gets ' + nf(vl, 2) + ' V instead of ' + nf(Vs, 1) + ' V. The dots are the current, the cable is drawn to its thickness, and the bulb dims as the voltage falls. The coloured glow shows how bad the loss is.'
+    };
+  };
+
+  /* ---------- wire size: cross-sections to scale ---------- */
+  VIZ.wiresize = function (sec) {
+    var Vs = num(sec, 'vs'), L = len(sec), I = loadA(sec, Vs), pct = num(sec, 'pct'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!ok(Vs, L, I, pct)) return null;
+    var sz = sizeFor(I, L, Vs, pct, mat, T);
+    if (sz.beyond) return null;
+    var from = Math.max(0, sz.idx - 1), to = Math.min(SIZES.length - 1, sz.idx + 3), n = to - from + 1, k = 64 / Math.sqrt(SIZES[to][0] / Math.PI), m = '', i, j, a, rr, cx, vd, p, am, pass, why;
+    for (i = from, j = 0; i <= to; i++, j++) {
+      a = SIZES[i][0]; rr = Math.max(5, Math.sqrt(a / Math.PI) * k); cx = (j + 0.5) * 1000 / n;
+      vd = dropFor(a, I, L, mat, T); p = vd / Vs * 100; am = ampacity(a, mat); pass = p <= pct && am >= I; why = p > pct ? 'too much drop' : 'overloaded';
+      if (i === sz.idx) m += '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + (rr + 16).toFixed(1) + '" fill="' + VC.acc + '" class="vpulse"/>' + tx(cx.toFixed(1), 22, 'Recommended', 'vt', 'middle');
+      m += '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + (rr + 6).toFixed(1) + '" fill="#1a2a5c" stroke="#3a4f8c" stroke-width="2"/>' +
+        '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + rr.toFixed(1) + '" fill="url(#gCu)"/>' + (rr >= 15 ? strands(cx, 110, rr) : '') +
+        tx(cx.toFixed(1), 212, nf(a, 2) + ' mm²', 'vt', 'middle') + tx(cx.toFixed(1), 234, nf(vd, 2) + ' V lost · ' + nf(am, 0) + ' A', 'vm', 'middle') +
+        '<text x="' + cx.toFixed(1) + '" y="256" text-anchor="middle" class="vt" style="fill:' + (pass ? VC.grn : VC.red) + '">' + (pass ? '✓ passes' : '✗ ' + why) + '</text>';
+    }
+    return {
+      svg: svgw(270, 'Cable cross-sections drawn to scale, with the recommended size highlighted', m),
+      cap: '<b>Cable cross-sections, drawn to scale.</b> Each step up in size has more copper, so it loses less voltage and carries more current. The highlighted one is the thinnest that passes both tests for your ' + nf(I, 1) + ' A over ' + nf(L, 1) + ' m. The strands are just for show: real cable has many more, thinner ones.'
+    };
+  };
+
+  /* ---------- fuse: load < fuse <= cable ---------- */
+  VIZ.fuse = function (sec) {
+    var Vs = num(sec, 'vs'), I = loadA(sec, Vs), f = parseFloat(str(sec, 'type')), A = num(sec, 'wire'), mat = str(sec, 'mat');
+    if (!ok(Vs, I, f)) return null;
+    var rec = fuseAtLeast(I * f), cab, i, name;
+    if (rec === null) return null;
+    if (isFinite(A) && A > 0) { cab = ampacity(A, mat); name = nf(A, 1) + ' mm² cable'; }
+    else { for (i = 0; i < SIZES.length; i++) if (ampacity(SIZES[i][0], mat) >= rec) break; i = Math.min(i, SIZES.length - 1); cab = ampacity(SIZES[i][0], mat); name = SIZES[i][0] + ' mm² cable (smallest that works)'; }
+    var M = Math.max(I, rec, cab) * 1.12, x0 = 290, W = 640, bw = function (v) { return (W * v / M).toFixed(1); }, fx = (x0 + W * rec / M).toFixed(1), good = cab >= rec, m = '';
+    [['Load draws', I, VC.acc, 40], ['Fuse blows at', rec, VC.amb, 100], ['Cable can carry', cab, good ? VC.grn : VC.red, 160]].forEach(function (r) {
+      m += tx(20, r[3] + 24, r[0], 'vt') + '<rect x="' + x0 + '" y="' + r[3] + '" width="' + W + '" height="32" rx="8" fill="' + VC.box + '"/>' +
+        '<rect class="vbar" x="' + x0 + '" y="' + r[3] + '" height="32" rx="8" fill="' + r[2] + '" fill-opacity=".85" style="width:' + bw(r[1]) + 'px"/>' +
+        tx((parseFloat(x0) + parseFloat(bw(r[1])) + 10).toFixed(1), r[3] + 23, nf(r[1], 1) + ' A', 'vt');
+    });
+    m += '<line x1="' + fx + '" y1="28" x2="' + fx + '" y2="206" stroke="' + VC.amb + '" stroke-width="2.5" stroke-dasharray="6 5" class="vblink"/>' +
+      '<text x="20" y="250" class="vt" style="fill:' + (good ? VC.grn : VC.red) + '">' + (good ? '✓ The fuse blows before the cable overheats (' + name + ').' : '✗ The cable would overheat before the fuse blows. Use thicker cable (' + name + ').') + '</text>';
+    return {
+      svg: svgw(270, 'Bars comparing the load current, the fuse rating and the cable rating', m),
+      cap: '<b>The golden rule: load, then fuse, then cable.</b> The fuse must sit above the load (so normal running and small surges don\'t blow it) and below what the cable can carry (so it blows before the cable overheats). The dashed line is the fuse rating.'
+    };
+  };
+
+  /* ---------- Ohm's law: a loop with a glowing resistor ---------- */
+  VIZ.ohm = function (sec) {
+    var g = function (n) { return parseFloat(sec.querySelector('[name="' + n + '"]').value); }, V = g('v'), I = g('i'), R = g('r'), P = g('p');
+    if (!ok(V, I, R, P)) return null;
+    var op = Math.min(0.95, 0.12 + Math.log10(1 + P) / 3.4), m = '', zz = 'M440 90 l10 -12 l20 24 l20 -24 l20 24 l20 -24 l20 24 l10 -12', hn = P < 15 ? 1 : P < 150 ? 2 : P < 1000 ? 3 : 4;
+    m += '<path d="M150 90 H850 V200 H150 Z" fill="none" stroke="' + VC.cop + '" stroke-width="5" stroke-linejoin="round"/>' + flowP('M150 90 H850 V200 H150 Z', I, 4);
+    m += '<rect x="420" y="66" width="160" height="48" rx="10" fill="' + VC.amb + '" style="opacity:' + op.toFixed(2) + '"/>' + boxR(440, 76, 120, 28, VC.amb) + '<path d="' + zz + '" fill="none" stroke="' + VC.amb + '" stroke-width="3" stroke-linejoin="round"/>';
+    m += heat(500, 66, hn);
+    m += battBox(105, 112, 90, 76, 'Battery', nf(V, 1) + ' V');
+    m += tx(500, 138, nf(R, 2) + ' Ω', 'vh', 'middle') + tx(500, 16, nf(P, 1) + ' W turned into heat', 'vt', 'middle') + tx(865, 152, nf(I, 2) + ' A', 'vh') + tx(865, 174, 'current', 'vm');
+    return {
+      svg: svgw(230, 'A battery pushing current through a resistor, which glows with heat', m),
+      cap: '<b>Water analogy.</b> Voltage is the pressure, current is the flow, and resistance is how narrow the pipe is. Squeeze the same pressure through a narrower pipe and less flows. The resistor turns the power (volts × amps) into heat: here ' + nf(V, 1) + ' V × ' + nf(I, 2) + ' A = ' + nf(P, 1) + ' W.'
+    };
+  };
+
+  /* ---------- inverter: where the battery's power goes ---------- */
+  VIZ.inverter = function (sec) {
+    var W = num(sec, 'watts'), eff = num(sec, 'eff') / 100, sys = num(sec, 'sys');
+    if (!(ok(W, sys, eff) && eff <= 1)) return null;
+    var Pin = W / eff, loss = Pin - W, Inom = Pin / sys, tout = 36, tin = tout * Pin / W, tl = Math.max(3, tout * loss / W), m = '';
+    m += '<rect x="170" y="' + (130 - tin / 2).toFixed(1) + '" width="250" height="' + tin.toFixed(1) + '" fill="' + VC.acc + '" fill-opacity=".22"/>' + flowL(170, 130, 420, 130, Inom, Math.min(7, tin * 0.3));
+    m += '<rect x="580" y="' + (130 - tout / 2) + '" width="250" height="' + tout + '" fill="' + VC.grn + '" fill-opacity=".22"/>' + flowL(580, 130, 830, 130, W / 230 * 4 + 6, Math.min(7, tout * 0.3));
+    m += '<rect x="' + (500 - tl / 2).toFixed(1) + '" y="200" width="' + tl.toFixed(1) + '" height="38" fill="' + VC.amb + '" fill-opacity=".3"/>' + heat(500, 262, 3);
+    m += battBox(30, 70, 140, 120, 'Battery', nf(sys, 0) + ' V') + boxR(420, 60, 160, 140, VC.vio) + tx(500, 120, 'Inverter', 'vt', 'middle') + tx(500, 144, nf(eff * 100, 0) + ' % efficient', 'vm', 'middle') +
+      boxR(830, 70, 140, 120, VC.grn) + tx(900, 120, '230 V', 'vh', 'middle') + tx(900, 146, 'sockets', 'vm', 'middle');
+    m += tx(295, 130 - tin / 2 - 26, nf(Pin, 0) + ' W in', 'vt', 'middle') + tx(295, 130 + tin / 2 + 26, nf(Inom, 0) + ' A from the battery', 'vm', 'middle') +
+      tx(705, 130 - tout / 2 - 26, nf(W, 0) + ' W out', 'vt', 'middle') + tx(705, 130 + tout / 2 + 26, nf(W / 230, 1) + ' A at 230 V', 'vm', 'middle') + tx(530, 232, nf(loss, 0) + ' W lost as heat', 'vt');
+    return {
+      svg: svgw(285, 'Power flowing from the battery through the inverter to the sockets, with some lost as heat', m),
+      cap: '<b>The battery has to supply more than the sockets use.</b> The inverter wastes about ' + nf((1 - eff) * 100, 0) + ' % as heat, so ' + nf(W, 0) + ' W of AC needs ' + nf(Pin, 0) + ' W from the battery. At ' + nf(sys, 0) + ' V that is ' + nf(Inom, 0) + ' A, many times the current on the AC side, which is why inverter cables are so thick. The wide bands show the power.'
+    };
+  };
+
+  /* ---------- battery runtime: a battery draining ---------- */
+  VIZ.runtime = function (sec) {
+    var chem = str(sec, 'chem'), C = num(sec, 'ah'), V = num(sec, 'v'), usable = num(sec, 'usable') / 100, load = num(sec, 'load'), unit = str(sec, 'loadUnit');
+    if (!(ok(C, V, usable, load) && usable <= 1)) return null;
+    var inv = unit === 'w' && checked(sec, 'inv'), I = unit === 'a' ? load : load / (V * (inv ? 0.9 : 1)), k = CHEM[chem].k, x = C / (I * 20);
+    var tFull = (C / I) * (x < 1 ? Math.pow(x, k - 1) : 1), hours = tFull * usable;
+    var x0 = 120, W = 700, endW = W * (1 - usable), stop = x0 + endW, m = '';
+    m += '<rect x="820" y="95" width="20" height="30" rx="4" fill="' + VC.met + '"/>' + boxR(x0, 70, W, 80);
+    m += '<rect x="' + x0 + '" y="70" height="80" rx="10" fill="url(#gFill)" width="' + W + '">' + anim('width', [W, W, endW.toFixed(1), endW.toFixed(1)], [0, 0.1, 0.85, 1], 7) + '</rect>';
+    m += '<rect x="' + x0 + '" y="70" width="' + endW.toFixed(1) + '" height="80" rx="10" fill="url(#pHatch)"/>' +
+      '<line x1="' + stop.toFixed(1) + '" y1="58" x2="' + stop.toFixed(1) + '" y2="162" stroke="' + VC.red + '" stroke-width="3" stroke-dasharray="6 4"/>';
+    m += tx(x0, 52, nf(C * usable, 0) + ' Ah usable of ' + nf(C, 0) + ' Ah, drawn at ' + nf(I, 1) + ' A', 'vt') + tx(Math.max(stop - 8, x0 + 10), 178, 'Stop here', 'vm', stop - x0 > 120 ? 'end' : 'start') + tx(820, 178, 'Full', 'vm', 'end');
+    m += '<line x1="810" y1="196" x2="' + (stop + 12).toFixed(1) + '" y2="196" stroke="' + VC.met + '" stroke-width="2" marker-end="url(#mArr)"/>' + tx(((810 + stop) / 2).toFixed(1), 222, 'time passes: about ' + dur(hours), 'vt', 'middle');
+    if (usable < 0.999) m += tx(x0 + endW / 2, 116, 'reserve', 'vtl', 'middle');
+    return {
+      svg: svgw(240, 'A battery draining until it reaches its safe limit', m),
+      cap: '<b>Time-lapse of the battery emptying.</b> The hatched part is the reserve you shouldn\'t use (' + nf((1 - usable) * 100, 0) + ' % of the battery). Run it flat and you shorten its life, especially lead-acid. At this load the usable part lasts about ' + dur(hours) + '.'
+    };
+  };
+
+  /* ---------- charge time: a battery filling along its charge curve ---------- */
+  VIZ.charge = function (sec) {
+    var chem = str(sec, 'chem'), C = num(sec, 'ah'), A = num(sec, 'amps'), soc = num(sec, 'soc'), tgt = num(sec, 'target'), other = num(sec, 'other') || 0;
+    if (!(ok(C, A) && isFinite(soc) && isFinite(tgt) && tgt > soc && soc >= 0 && tgt <= 100)) return null;
+    var net = A - other;
+    if (net <= 0) return null;
+    var tb, ta, t, bend = false, p = 1, i;
+    if (chem === 'lfp') { t = C * (tgt - soc) / 100 / (net * 0.95); }
+    else {
+      tb = Math.max(0, Math.min(tgt, 80) - soc) * C / 100 / (net * 0.85); ta = Math.max(0, tgt - Math.max(soc, 80)) * C / 100 / (net * 0.85 * 0.4); t = tb + ta;
+      bend = soc < 80 && tgt > 80; p = tb / t;
+    }
+    var cx0 = 290, cw = 640, yS = function (s) { return 200 - 1.6 * s; }, xT = function (f) { return cx0 + cw * f; };
+    var pts = bend ? [[0, soc], [p, 80], [1, tgt]] : [[0, soc], [1, tgt]], d = '', L1 = 0, L2 = 0, m = '';
+    pts.forEach(function (q, j) { d += (j ? ' L' : 'M') + xT(q[0]).toFixed(1) + ' ' + yS(q[1]).toFixed(1); });
+    for (i = 1; i < pts.length; i++) { var seg = Math.hypot(xT(pts[i][0]) - xT(pts[i - 1][0]), yS(pts[i][1]) - yS(pts[i - 1][1])); if (i === 1) L1 = seg; else L2 = seg; }
+    var Lt = L1 + L2, hs = 150 * soc / 100, ht = 150 * tgt / 100, hb = 150 * 80 / 100;
+    // battery (vertical)
+    m += '<rect x="80" y="38" width="50" height="12" rx="3" fill="' + VC.met + '"/>' + boxR(40, 50, 130, 170);
+    var yv = bend ? [210 - hs, 210 - hb, 210 - ht, 210 - ht] : [210 - hs, 210 - ht, 210 - ht], hv = bend ? [hs, hb, ht, ht] : [hs, ht, ht], kt = bend ? [0, p * 0.85, 0.85, 1] : [0, 0.85, 1];
+    m += '<rect x="50" width="110" rx="6" fill="url(#gFill)" y="' + (210 - ht).toFixed(1) + '" height="' + ht.toFixed(1) + '">' + anim('y', yv.map(function (v) { return v.toFixed(1); }), kt, 6) + anim('height', hv.map(function (v) { return v.toFixed(1); }), kt, 6) + '</rect>';
+    m += tx(105, 242, 'Battery', 'vm', 'middle');
+    // chart
+    m += '<line x1="' + cx0 + '" y1="200" x2="' + (cx0 + cw) + '" y2="200" stroke="' + VC.met + '" stroke-opacity=".6"/><line x1="' + cx0 + '" y1="40" x2="' + cx0 + '" y2="200" stroke="' + VC.met + '" stroke-opacity=".6"/>';
+    m += '<line x1="' + cx0 + '" y1="' + yS(80) + '" x2="' + (cx0 + cw) + '" y2="' + yS(80) + '" stroke="' + VC.met + '" stroke-opacity=".3" stroke-dasharray="4 5"/>' + tx(cx0 - 8, yS(80) + 5, '80 %', 'vm', 'end') + tx(cx0 - 8, 204, '0 %', 'vm', 'end') + tx(cx0 - 8, 45, '100 %', 'vm', 'end');
+    m += '<path d="' + d + '" fill="none" stroke="' + VC.acc + '" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
+    m += '<circle r="8" fill="' + VC.grn + '" cx="' + (REDUCE ? xT(1).toFixed(1) : 0) + '" cy="' + (REDUCE ? yS(tgt).toFixed(1) : 0) + '">' + (REDUCE ? '' : '<animateMotion dur="6s" repeatCount="indefinite" path="' + d + '" calcMode="linear" keyPoints="' + (bend ? '0;' + (L1 / Lt).toFixed(4) + ';1;1' : '0;1;1') + '" keyTimes="' + kt.join(';') + '"/>') + '</circle>';
+    m += tx(cx0, 226, 'start', 'vm', 'start') + tx(cx0 + cw, 226, 'about ' + dur(t), 'vt', 'end') + tx(cx0 + 12, 28, 'Charge level over time', 'vt');
+    if (bend) m += tx(xT(p) + 8, yS(80) + 26, 'slows down here', 'vm');
+    return {
+      svg: svgw(250, 'A battery filling up, with its charge level plotted against time', m),
+      cap: chem === 'lfp' ? '<b>Lithium charges at a steady rate</b> until nearly full, so the line is close to straight. Time = amp-hours needed ÷ charge current (a bit more for losses).' : '<b>Lead-acid charges fast, then slows down.</b> Up to about 80 % the battery takes the full current. After that it only accepts a trickle, so the last 20 % takes about as long as the first 80 %. The dot runs along the curve in time with the filling battery.'
+    };
+  };
+
+  /* ---------- DC-DC: from the tow vehicle to the caravan ---------- */
+  VIZ.dcdc = function (sec) {
+    var Io = num(sec, 'out'), Vb = num(sec, 'sys'), Vin = num(sec, 'vin'), eff = num(sec, 'eff') / 100, Li = num(sec, 'inlen'), Lo = num(sec, 'outlen'), pct = num(sec, 'pct'), mat = str(sec, 'mat'), T = num(sec, 'temp');
+    if (!(ok(Io, Vb, Vin, eff, Li, Lo, pct) && eff <= 1)) return null;
+    var Iin = Io * Vb * 1.2 / eff / Vin, fi = fuseAtLeast(Iin * 1.25), fo = fuseAtLeast(Io * 1.25);
+    var si = cableFor(Iin, Li, Vin, pct, mat, T, fi), so = cableFor(Io, Lo, Vb, pct, mat, T, fo);
+    if (si.beyond || so.beyond) return null;
+    var ai = SIZES[si.idx][0], ao = SIZES[so.idx][0], vArr = Vin - dropFor(ai, Iin, Li, mat, T), m = '';
+    // car
+    m += '<path d="M40 190 V162 Q40 147 58 144 L92 140 L118 110 Q124 104 134 104 H200 Q212 104 220 114 L240 142 L252 148 Q262 152 262 166 V190 Z" fill="' + VC.box + '" stroke="' + VC.acc + '" stroke-opacity=".6" stroke-width="1.5"/>' +
+      '<circle cx="95" cy="196" r="24" fill="' + VC.ink + '" stroke="' + VC.met + '" stroke-width="3"/><circle cx="210" cy="196" r="24" fill="' + VC.ink + '" stroke="' + VC.met + '" stroke-width="3"/>' + tx(150, 86, 'Tow vehicle', 'vm', 'middle');
+    m += '<rect x="135" y="150" width="50" height="28" rx="4" fill="' + VC.box + '" stroke="' + VC.acc + '"/><rect x="141" y="145" width="9" height="6" fill="' + VC.red + '"/><rect x="170" y="145" width="9" height="6" fill="' + VC.met + '"/>' + tx(160, 170, nf(Vin, 0) + ' V', 'vm', 'middle');
+    // caravan
+    m += '<line x1="262" y1="186" x2="330" y2="186" stroke="' + VC.met + '" stroke-width="6"/><rect x="330" y="92" width="630" height="104" rx="16" fill="' + VC.box + '" stroke="' + VC.acc + '" stroke-opacity=".6" stroke-width="1.5"/>' +
+      '<rect x="600" y="104" width="90" height="34" rx="6" fill="' + VC.ink + '" stroke="' + VC.acc + '" stroke-opacity=".4"/><rect x="720" y="104" width="60" height="34" rx="6" fill="' + VC.ink + '" stroke="' + VC.acc + '" stroke-opacity=".4"/>' +
+      '<circle cx="690" cy="204" r="26" fill="' + VC.ink + '" stroke="' + VC.met + '" stroke-width="3"/>' + tx(600, 78, 'Caravan', 'vm');
+    // DC-DC box and caravan battery
+    m += boxR(420, 120, 120, 58, VC.vio) + tx(480, 146, 'DC-DC', 'vt', 'middle') + tx(480, 166, 'charger', 'vm', 'middle') + tx(480, 112, 'arrives with ' + nf(vArr, 1) + ' V', 'vm', 'middle');
+    m += battBox(830, 126, 100, 56, 'Caravan', nf(Vb, 0) + ' V');
+    // cables
+    var din = 'M160 178 V258 H480 V178';
+    m += '<path d="' + din + '" fill="none" stroke="' + VC.cop + '" stroke-width="' + cabW(ai) + '" stroke-linejoin="round"/>' + flowP(din, Iin, Math.max(3, Math.min(6, cabW(ai) * 0.5)));
+    m += wire(540, 150, 830, 150, cabW(ao)) + flowL(540, 150, 830, 150, Io, Math.max(3, Math.min(6, cabW(ao) * 0.5)));
+    m += tx(320, 286, 'Input cable: ' + nf(Li, 0) + ' m of ' + nf(ai, 1) + ' mm² carrying ' + nf(Iin, 0) + ' A', 'vt', 'middle') + tx(685, 176, nf(Io, 0) + ' A at ' + nf(Vb * 1.2, 1) + ' V into the battery', 'vt', 'middle');
+    return {
+      svg: svgw(300, 'A tow vehicle charging a caravan battery through a long cable and a DC-DC charger', m),
+      cap: '<b>The long cable carries more than the charger delivers.</b> A DC-DC charger boosts the voltage for the caravan battery, so it draws about ' + nf(Iin, 0) + ' A from the vehicle to put ' + nf(Io, 0) + ' A into the battery. That bigger current has to travel the whole way along the tow cable, so the cable is drawn at the thickness you need to keep the voltage reaching the charger (' + nf(vArr, 1) + ' V here) high enough for it to work.'
+    };
+  };
+
+  /* ---------- power budget: who uses the energy ---------- */
+  VIZ.budget = function (sec) {
+    var eff = (num(sec, 'eff') || 90) / 100, rows = [], tot = 0;
+    $$('.brow', sec).forEach(function (r) {
+      var w = parseFloat(r.querySelector('[data-k=w]').value) || 0, h = parseFloat(r.querySelector('[data-k=h]').value) || 0, q = parseFloat(r.querySelector('[data-k=q]').value) || 0, ac = r.querySelector('[data-k=ac]').checked, wh = w * h * q * (ac ? 1 / eff : 1), nm = r.querySelector('[data-k=n]').value.trim() || 'Unnamed';
+      if (wh > 0) { rows.push({ n: nm.length > 30 ? nm.slice(0, 29) + '…' : nm, wh: wh }); tot += wh; }
+    });
+    if (!rows.length) return null;
+    rows.sort(function (a, b) { return b.wh - a.wh; });
+    rows = rows.slice(0, 8);
+    var max = rows[0].wh, m = '', x0 = 330, W = 560;
+    rows.forEach(function (r, i) {
+      var y = 14 + i * 38;
+      m += tx(x0 - 12, y + 22, esc(r.n), 'vt', 'end') + '<rect x="' + x0 + '" y="' + y + '" width="' + W + '" height="28" rx="8" fill="' + VC.box + '"/>' +
+        '<rect class="vbar" x="' + x0 + '" y="' + y + '" height="28" rx="8" fill="' + (i === 0 ? VC.amb : 'url(#gBar)') + '" style="width:' + Math.max(4, W * r.wh / max).toFixed(1) + 'px"/>' +
+        tx((x0 + Math.max(4, W * r.wh / max) + 10).toFixed(1), y + 20, nf(r.wh, 0) + ' Wh · ' + nf(r.wh / tot * 100, 0) + ' %', 'vm');
+    });
+    return {
+      svg: svgw(14 + rows.length * 38 + 6, 'Bar chart of the daily energy used by each appliance', m),
+      cap: '<b>Where your energy goes.</b> The biggest user is in amber: that\'s the first place to save. Cutting a big hungry item by an hour saves far more than switching off several small ones.'
+    };
+  };
+
+  /* ---------- solar: a sun crossing the sky ---------- */
+  VIZ.solar = function (sec) {
+    var wh = num(sec, 'wh'), V = num(sec, 'v'), psh = num(sec, 'psh'), eff = num(sec, 'ctl'), pw = num(sec, 'pw');
+    if (!ok(wh, V, psh, eff, pw)) return null;
+    var n = Math.max(1, Math.ceil(wh / (psh * eff) / pw - 1e-9)), arr = n * pw, Dl = 10, sr = 12 - Dl / 2, pk = Math.min(1, psh / (Dl * 2 / Math.PI));
+    var px = function (h) { return 80 + (h - 5) * 60; }, base = 210, full = 150, d = '', t, y, m = '', sun;
+    for (t = sr; t <= sr + Dl + 1e-9; t += 0.25) { y = base - full * pk * Math.sin(Math.PI * (t - sr) / Dl); d += (d ? ' L' : 'M') + px(t).toFixed(1) + ' ' + y.toFixed(1); }
+    m += '<path d="' + d + ' L' + px(sr + Dl) + ' ' + base + ' L' + px(sr) + ' ' + base + ' Z" fill="' + VC.acc + '" fill-opacity=".2"/><path d="' + d + '" fill="none" stroke="' + VC.acc + '" stroke-width="3.5" stroke-linejoin="round"/>';
+    m += '<line x1="80" y1="' + (base - full) + '" x2="920" y2="' + (base - full) + '" stroke="' + VC.met + '" stroke-opacity=".5" stroke-dasharray="5 5"/>' + tx(84, base - full - 8, 'Full sun (1,000 W/m²)', 'vm') +
+      '<rect x="' + px(12 - psh / 2).toFixed(1) + '" y="' + (base - full) + '" width="' + (psh * 60).toFixed(1) + '" height="' + full + '" fill="' + VC.amb + '" fill-opacity=".1" stroke="' + VC.amb + '" stroke-width="2.5" stroke-dasharray="7 5"/>' + tx(px(12), base - full / 2 + 4, nf(psh, 1) + ' h at full sun', 'vt', 'middle');
+    m += '<line x1="80" y1="' + base + '" x2="920" y2="' + base + '" stroke="' + VC.met + '" stroke-opacity=".7"/>';
+    [6, 9, 12, 15, 18].forEach(function (h) { m += tx(px(h), 232, h + ':00', 'vm', 'middle'); });
+    sun = '<circle r="34" fill="url(#gBulb)"/><circle r="13" fill="' + VC.amb + '"/>';
+    m += REDUCE ? '<g transform="translate(' + px(12) + ' ' + (base - full * pk) + ')">' + sun + '</g>' : '<g>' + sun + '<animateMotion dur="10s" repeatCount="indefinite" path="' + d + '" calcMode="linear"/></g>';
+    return {
+      svg: svgw(246, 'A curve of sunshine over the day with a sun moving along it', m),
+      cap: '<b>Peak sun hours.</b> Panels give full power only around noon, so the whole day\'s sun is squashed into the equivalent number of full-strength hours (the dashed box has the same area as the curve). With ' + nf(psh, 1) + ' of those, ' + nf(arr, 0) + ' W of panels make about ' + nf(arr * psh * eff, 0) + ' Wh a day after losses.'
+    };
+  };
+
+  /* ---------- layouts: solar strings and battery banks ---------- */
+  function gauge(x, y, w, val, limit, mark, max, col, label, limLabel) {
+    return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="18" rx="9" fill="' + VC.box + '"/><rect class="vbar" x="' + x + '" y="' + y + '" height="18" rx="9" fill="' + col + '" fill-opacity=".85" style="width:' + (w * Math.min(1, val / max)).toFixed(1) + 'px"/>' +
+      '<line x1="' + (x + w * limit / max).toFixed(1) + '" y1="' + (y - 8) + '" x2="' + (x + w * limit / max).toFixed(1) + '" y2="' + (y + 26) + '" stroke="' + VC.red + '" stroke-width="3"/>' +
+      '<line x1="' + (x + w * mark / max).toFixed(1) + '" y1="' + (y - 4) + '" x2="' + (x + w * mark / max).toFixed(1) + '" y2="' + (y + 22) + '" stroke="#fff" stroke-width="2.5"/>' +
+      tx(x, y - 14, label, 'vt') + tx((x + w * limit / max).toFixed(1), y + 46, limLabel, 'vm', 'middle');
+  }
+  function grid(kind, s, p, Istr, unitText) {
+    if (s > 8 || p > 6) return null;
+    var w = Math.min(118, Math.floor(600 / s) - 22), h = kind === 'panel' ? Math.min(72, Math.floor(170 / p) - 16) : Math.min(58, Math.floor(170 / p) - 16), gap = 22, rowP = h + 20, x0 = 150 + Math.max(0, (560 - (s * w + (s - 1) * 22)) / 2), y0 = 44, i, j, m = '', yc = [];
+    if (h < 22) h = 22; rowP = h + 20;
+    for (i = 0; i < p; i++) yc.push(y0 + i * rowP + h / 2);
+    var xEnd = x0 + s * w + (s - 1) * gap, xl = x0 - 40, xr = xEnd + 40, yb = y0 + p * rowP + 8, Itot = Istr * p;
+    m += wire(xl, yc[0], xl, yb, 4, VC.met) + wire(xl, yb, 870, yb, 4, VC.met) + flowL(xl, yb, xl, yc[0], Itot) + flowL(870, yb, xl, yb, Itot);
+    if (p > 1) m += wire(xr, yc[0], xr, yc[p - 1], 4, VC.met) + flowL(xr, yc[p - 1], xr, yc[0], Itot);
+    m += wire(xr, yc[0], 870, yc[0], 4, VC.met) + flowL(xr, yc[0], 870, yc[0], Itot);
+    for (i = 0; i < p; i++) {
+      m += wire(xl, yc[i], x0, yc[i], 4, VC.met) + wire(xEnd, yc[i], xr, yc[i], 4, VC.met) + flowL(xl, yc[i], xr, yc[i], Istr);
+      for (j = 0; j < s; j++) {
+        var ux = x0 + j * (w + gap), uy = yc[i] - h / 2;
+        if (kind === 'panel') {
+          m += '<rect x="' + ux + '" y="' + uy + '" width="' + w + '" height="' + h + '" rx="4" fill="#12306a" stroke="' + VC.acc + '" stroke-opacity=".7"/>';
+          for (var c = 1; c < 6; c++) m += '<line x1="' + (ux + c * w / 6).toFixed(1) + '" y1="' + uy + '" x2="' + (ux + c * w / 6).toFixed(1) + '" y2="' + (uy + h) + '" stroke="' + VC.acc + '" stroke-opacity=".22"/>';
+          for (c = 1; c < 3; c++) m += '<line x1="' + ux + '" y1="' + (uy + c * h / 3).toFixed(1) + '" x2="' + (ux + w) + '" y2="' + (uy + c * h / 3).toFixed(1) + '" stroke="' + VC.acc + '" stroke-opacity=".22"/>';
+        } else {
+          m += '<rect x="' + (ux + 10) + '" y="' + (uy - 6) + '" width="14" height="7" rx="2" fill="' + VC.red + '"/><rect x="' + (ux + w - 24) + '" y="' + (uy - 6) + '" width="14" height="7" rx="2" fill="' + VC.met + '"/>' + boxR(ux, uy, w, h);
+        }
+        m += tx((ux + w / 2).toFixed(1), (yc[i] + 5).toFixed(1), unitText, 'vtl', 'middle');
+      }
+    }
+    var bot = yb + 28;
+    m += boxR(870, yc[0] - 30, 100, (yb - yc[0]) + 60, kind === 'panel' ? VC.vio : VC.grn) + tx(920, ((yc[0] + yb) / 2).toFixed(1), kind === 'panel' ? 'Regulator' : 'Loads', 'vt', 'middle') +
+      tx(xl - 6, yc[0] - 18, '−', 'vh', 'middle') + tx(xr + 6, yc[0] - 12, '+', 'vh', 'middle');
+    return { m: m, bottom: bot };
+  }
+  VIZ.array = function (sec) {
+    var voc = num(sec, 'voc'), vmp = num(sec, 'vmp'), imp = num(sec, 'imp'), coef = num(sec, 'coef'), cold = num(sec, 'cold'), s = Math.round(num(sec, 's')), p = Math.round(num(sec, 'p')), maxV = num(sec, 'maxv');
+    if (!(ok(voc, vmp, imp, s, p, maxV) && isFinite(coef) && isFinite(cold))) return null;
+    var vocCold = voc * s * (1 + coef / 100 * (cold - 25)), g = grid('panel', s, p, imp, nf(vmp, 1) + ' V');
+    if (!g) return null;
+    var col = vocCold > maxV ? VC.red : vocCold > 0.9 * maxV ? VC.amb : VC.grn, max = Math.max(maxV, vocCold) * 1.15, gy = g.bottom + 40;
+    var m = g.m + gauge(150, gy, 700, vocCold, maxV, vmp * s, max, col, 'Array voltage on a cold morning: ' + nf(vocCold, 1) + ' V', 'Regulator limit ' + nf(maxV, 0) + ' V');
+    return {
+      svg: svgw(gy + 70, 'Solar panels wired in series strings and parallel, feeding a regulator, with a voltage safety gauge', m),
+      cap: '<b>Series adds volts, parallel adds amps.</b> Each row here is a string of ' + s + ' panel' + (s > 1 ? 's' : '') + ' in series (' + nf(vmp * s, 1) + ' V working), and ' + p + ' string' + (p > 1 ? 's' : '') + ' run side by side (' + nf(imp * p, 1) + ' A). The bar is the array voltage when it\'s cold, which must stay left of the red regulator limit. The white mark is the normal working voltage.'
+    };
+  };
+  VIZ.bank = function (sec) {
+    var bv = num(sec, 'bv'), bah = num(sec, 'bah'), s = Math.round(num(sec, 's')), p = Math.round(num(sec, 'p'));
+    if (!ok(bv, bah, s, p)) return null;
+    var g = grid('battery', s, p, 20, nf(bv, 0) + ' V · ' + nf(bah, 0) + ' Ah');
+    if (!g) return null;
+    return {
+      svg: svgw(g.bottom + 14, 'Batteries wired in series and parallel into one bank', g.m),
+      cap: '<b>Your bank: ' + nf(bv * s, 1) + ' V and ' + nf(bah * p, 0) + ' Ah.</b> Batteries in a row are wired in series (+ to −) which adds their voltage. Rows side by side are in parallel which adds their capacity. The dots show current flowing out to the loads.'
+    };
+  };
+
+  /* ---------- battery % from voltage: the discharge curve ---------- */
+  VIZ.soc = function (sec) {
+    var chem = str(sec, 'chem'), mult = num(sec, 'sys'), v = num(sec, 'volts');
+    if (!ok(v, mult)) return null;
+    var v12 = v / mult, tab = chem === 'lfp' ? SOC_LFP : SOC_LEAD, oth = chem === 'lfp' ? SOC_LEAD : SOC_LFP;
+    var X = function (s) { return 90 + s * 8.2; }, Y = function (vv) { return 200 - (Math.max(10, Math.min(14, vv)) - 10) / 4 * 160; }, m = '', i, pc = interp(tab, v12);
+    function path(t) { var d = ''; t.forEach(function (q, j) { d += (j ? ' L' : 'M') + X(q[1]).toFixed(1) + ' ' + Y(q[0]).toFixed(1); }); return d; }
+    [10, 11, 12, 13, 14].forEach(function (vv) { m += '<line x1="90" y1="' + Y(vv) + '" x2="910" y2="' + Y(vv) + '" stroke="' + VC.met + '" stroke-opacity=".18"/>' + tx(80, Y(vv) + 5, vv + ' V', 'vm', 'end'); });
+    [0, 25, 50, 75, 100].forEach(function (s) { m += tx(X(s), 224, s + ' %', 'vm', 'middle'); });
+    m += '<path d="' + path(oth) + '" fill="none" stroke="' + VC.met + '" stroke-opacity=".55" stroke-width="3" stroke-dasharray="7 6"/><path d="' + path(tab) + '" fill="none" stroke="' + VC.acc + '" stroke-width="4" stroke-linejoin="round"/>';
+    m += tx(916, Y(oth[oth.length - 1][0]) + 5, chem === 'lfp' ? 'Lead-acid' : 'Lithium', 'vm') + tx(916, Y(tab[tab.length - 1][0]) + 5, chem === 'lfp' ? 'Lithium' : 'Lead-acid', 'vt');
+    m += '<line x1="' + X(pc).toFixed(1) + '" y1="' + Y(v12).toFixed(1) + '" x2="' + X(pc).toFixed(1) + '" y2="200" stroke="' + VC.grn + '" stroke-dasharray="4 4"/><line x1="90" y1="' + Y(v12).toFixed(1) + '" x2="' + X(pc).toFixed(1) + '" y2="' + Y(v12).toFixed(1) + '" stroke="' + VC.grn + '" stroke-dasharray="4 4"/>' +
+      '<circle cx="' + X(pc).toFixed(1) + '" cy="' + Y(v12).toFixed(1) + '" r="16" fill="' + VC.grn + '" class="vpulse"/><circle cx="' + X(pc).toFixed(1) + '" cy="' + Y(v12).toFixed(1) + '" r="7" fill="' + VC.grn + '"/>' + tx(X(pc) + 14, Y(v12) - 14, 'you: ' + nf(v12, 2) + ' V ≈ ' + nf(Math.round(pc / 5) * 5, 0) + ' %', 'vt');
+    return {
+      svg: svgw(240, 'Battery voltage plotted against charge level with your reading marked', m),
+      cap: chem === 'lfp' ? '<b>Lithium is flat.</b> The voltage barely changes between about 20 % and 90 % charge, so a voltmeter can\'t tell you much there. The dashed line is a lead-acid battery for comparison.' : '<b>Lead-acid slopes steadily.</b> Its resting voltage falls as it empties, so a voltmeter gives a decent estimate. The dashed line is a lithium battery for comparison: it\'s much flatter.'
+    };
+  };
+
+  /* wrap each calculator so its drawing refreshes whenever it recalculates (the drawings only read inputs) */
+  Object.keys(VIZ).forEach(function (id) {
+    var f = CALCS[id], b = VIZ[id];
+    if (!f) return;
+    CALCS[id] = function (sec, e) {
+      var r = null;
+      f(sec, e);
+      try { r = b(sec); } catch (err) { if (window.console) console.warn('drawing failed for ' + id, err); }
+      if (r) viz(sec, r.svg, r.cap); else vizHide(sec);
+    };
+  });
 
   /* ============ wire up all calculators ============ */
   $$('[data-calc]').forEach(function (sec) {
