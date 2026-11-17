@@ -1516,17 +1516,62 @@ footer a { color: var(--accent); }
     if (!(ok(C, V, usable, load) && usable <= 1)) return null;
     var inv = unit === 'w' && checked(sec, 'inv'), I = unit === 'a' ? load : load / (V * (inv ? 0.9 : 1)), k = CHEM[chem].k, x = C / (I * 20);
     var tFull = (C / I) * (x < 1 ? Math.pow(x, k - 1) : 1), hours = tFull * usable;
-    var x0 = 120, W = 700, endW = W * (1 - usable), stop = x0 + endW, m = '';
-    m += '<rect x="820" y="95" width="20" height="30" rx="4" fill="' + VC.met + '"/>' + boxR(x0, 70, W, 80);
-    m += '<rect x="' + x0 + '" y="70" height="80" rx="10" fill="url(#gFill)" width="' + W + '">' + anim('width', [W, W, endW.toFixed(1), endW.toFixed(1)], [0, 0.1, 0.85, 1], 7) + '</rect>';
-    m += '<rect x="' + x0 + '" y="70" width="' + endW.toFixed(1) + '" height="80" rx="10" fill="url(#pHatch)"/>' +
-      '<line x1="' + stop.toFixed(1) + '" y1="58" x2="' + stop.toFixed(1) + '" y2="162" stroke="' + VC.red + '" stroke-width="3" stroke-dasharray="6 4"/>';
-    m += tx(x0, 52, nf(C * usable, 0) + ' Ah usable of ' + nf(C, 0) + ' Ah, drawn at ' + nf(I, 1) + ' A', 'vt') + tx(Math.max(stop - 8, x0 + 10), 178, 'Stop here', 'vm', stop - x0 > 120 ? 'end' : 'start') + tx(820, 178, 'Full', 'vm', 'end');
-    m += '<line x1="810" y1="196" x2="' + (stop + 12).toFixed(1) + '" y2="196" stroke="' + VC.met + '" stroke-width="2" marker-end="url(#mArr)"/>' + tx(((810 + stop) / 2).toFixed(1), 222, 'time passes: about ' + dur(hours), 'vt', 'middle');
-    if (usable < 0.999) m += tx(x0 + endW / 2, 116, 'reserve', 'vtl', 'middle');
+    // A 3D battery running a 3D chest fridge, as a time-lapse that loops every D seconds:
+    // full (0 to T0), draining to the safe limit (T0 to T1), then the fridge is switched off (T1 to the end).
+    var D = 9, T0 = 0.08, T1 = 0.8, N = 5, m = '', i;
+    function sa(attr, vals, kt, disc) { return REDUCE ? '' : '<animate attributeName="' + attr + '" values="' + vals.join(';') + '" keyTimes="' + kt.map(function (v) { return +(+v).toFixed(4); }).join(';') + '" dur="' + D + 's" repeatCount="indefinite"' + (disc ? ' calcMode="discrete"' : '') + '/>'; }
+    var stepT = function (s) { return T0 + (T1 - T0) * s / N; };
+    function steps(x, y, cls, anchor, text, col) {   // one text per step, each shown in turn
+      var s, o = '';
+      for (s = 0; s <= N; s++) o += '<text x="' + x + '" y="' + y + '" class="' + cls + '"' + (anchor ? ' text-anchor="' + anchor + '"' : '') + ' opacity="' + (s === N ? 1 : 0) + '"' + (col ? ' style="fill:' + col(s) + '"' : '') + '>' + text(s) +
+        (s === 0 ? sa('opacity', [1, 0], [0, stepT(1)], true) : s === N ? sa('opacity', [0, 1], [0, stepT(N)], true) : sa('opacity', [0, 1, 0], [0, stepT(s), stepT(s + 1)], true)) + '</text>';
+      return o;
+    }
+    // --- the battery: front face, top, side, with the charge level inside
+    var yF = 138, yB = 272, H = yB - yF, yS = yB - H * (1 - usable), lvl = function (y) { return '303,' + y + ' 353,' + (y - 30) + ' 353,' + (yB - 30) + ' 303,' + yB; };
+    var fillCol = '<animate attributeName="fill" values="' + VC.grn + ';' + VC.grn + ';' + (usable > 0.7 ? VC.amb : '#9be36a') + ';' + (usable > 0.7 ? VC.amb : '#9be36a') + '" keyTimes="0;' + T0 + ';' + T1 + ';1" dur="' + D + 's" repeatCount="indefinite"/>';
+    m += '<ellipse cx="240" cy="290" rx="170" ry="12" fill="#000" fill-opacity=".35"/><ellipse cx="770" cy="290" rx="190" ry="12" fill="#000" fill-opacity=".35"/>';
+    m += '<polygon points="110,130 166,96 356,96 300,130" fill="#1d2b5e" stroke="' + VC.acc + '" stroke-opacity=".5"/>' +
+      '<polygon points="300,130 356,96 356,246 300,280" fill="#0d1532" stroke="' + VC.acc + '" stroke-opacity=".4"/>' +
+      '<rect x="110" y="130" width="190" height="150" fill="#0b1330" stroke="' + VC.acc + '" stroke-opacity=".6" stroke-width="1.5"/>';
+    m += '<rect x="118" y="' + yS.toFixed(1) + '" width="174" height="' + (yB - yS).toFixed(1) + '" fill="' + (REDUCE ? VC.amb : VC.grn) + '" fill-opacity=".75">' + (REDUCE ? '' : fillCol) +
+      sa('y', [yF, yF, yS.toFixed(1), yS.toFixed(1)], [0, T0, T1, 1]) + sa('height', [H, H, (yB - yS).toFixed(1), (yB - yS).toFixed(1)], [0, T0, T1, 1]) + '</rect>' +
+      '<polygon points="' + lvl(yS.toFixed(1)) + '" fill="' + (REDUCE ? VC.amb : VC.grn) + '" fill-opacity=".45">' + (REDUCE ? '' : fillCol) +
+      sa('points', [lvl(yF), lvl(yF), lvl(yS.toFixed(1)), lvl(yS.toFixed(1))], [0, T0, T1, 1]) + '</polygon>';
+    if (usable < 0.999) m += '<rect x="118" y="' + yS.toFixed(1) + '" width="174" height="' + (yB - yS).toFixed(1) + '" fill="url(#pHatch)"/>' + (yB - yS > 26 ? tx(205, ((yS + yB) / 2 + 5).toFixed(1), 'reserve, keep', 'vtl', 'middle') : '');
+    m += '<line x1="100" y1="' + yS.toFixed(1) + '" x2="300" y2="' + yS.toFixed(1) + '" stroke="' + VC.red + '" stroke-width="3" stroke-dasharray="6 4"/>' +
+      tx(96, yF + 5, 'Full', 'vm', 'end') + '<text x="96" y="' + (yS + 5).toFixed(1) + '" text-anchor="end" class="vm" style="fill:' + VC.red + '">Stop</text>';
+    // terminals on top
+    [[170, VC.red, '+'], [290, VC.met, '−']].forEach(function (t) {
+      m += '<rect x="' + (t[0] - 10) + '" y="100" width="20" height="12" fill="' + t[1] + '"/><ellipse cx="' + t[0] + '" cy="100" rx="10" ry="4" fill="' + t[1] + '" stroke="#0b1330" stroke-opacity=".4"/>' + tx(t[0], 126, t[2], 'vm', 'middle');
+    });
+    m += tx(205, 160, nf(C, 0) + ' Ah', 'vt', 'middle') + steps(205, (yS - 14 > 182 ? yS - 14 : 196).toFixed(1), 'vh', 'middle', function (s) { return nf(100 - (usable * 100) * s / N, 0) + ' %'; });
+    // --- the cable: + out to the fridge, − back
+    var cp = 'M170 96 C170 44 330 34 430 62 C540 92 560 238 664 246', cn = 'M652 254 C548 248 528 102 430 74 C 340 50 290 66 290 96';
+    m += '<path d="' + cp + '" fill="none" stroke="' + VC.red + '" stroke-opacity=".85" stroke-width="5"/><path d="' + cn + '" fill="none" stroke="#3a4f8c" stroke-width="5"/>' +
+      '<g>' + flowP(cp, I, 3) + flowP(cn, I, 3) + sa('opacity', [1, 0], [0, T1], true) + '</g>';
+    // --- the chest fridge: lid, front, side, display, vents
+    m += '<polygon points="640,150 696,116 936,116 880,150" fill="#24346e" stroke="' + VC.acc + '" stroke-opacity=".5"/>' +
+      '<polygon points="880,150 936,116 936,246 880,280" fill="#0d1532" stroke="' + VC.acc + '" stroke-opacity=".4"/>' +
+      [0, 1, 2, 3].map(function (k) { return '<line x1="' + (892 + k * 11) + '" y1="' + (196 - k * 6.7).toFixed(1) + '" x2="' + (892 + k * 11) + '" y2="' + (250 - k * 6.7).toFixed(1) + '" stroke="' + VC.met + '" stroke-opacity=".45" stroke-width="3"/>'; }).join('') +
+      '<rect x="640" y="150" width="240" height="130" fill="#101a3c" stroke="' + VC.acc + '" stroke-opacity=".6" stroke-width="1.5"/>' +
+      '<line x1="640" y1="172" x2="880" y2="172" stroke="' + VC.acc + '" stroke-opacity=".45"/><rect x="730" y="158" width="60" height="8" rx="4" fill="' + VC.met + '" fill-opacity=".7"/>';
+    m += '<rect x="666" y="186" width="96" height="44" rx="8" fill="' + VC.acc + '" fill-opacity=".18">' + sa('fill-opacity', [0.18, 0.02], [0, T1], true) + '</rect>' +
+      '<rect x="672" y="192" width="84" height="32" rx="5" fill="#050a1a" stroke="' + VC.met + '" stroke-opacity=".5"/>' +
+      '<text x="714" y="214" text-anchor="middle" class="vt" style="fill:' + VC.acc + '">3 °C' + sa('opacity', [1, 0], [0, T1], true) + '</text>' +
+      '<text x="714" y="214" text-anchor="middle" class="vt" style="fill:' + VC.red + '" opacity="0">OFF' + sa('opacity', [0, 1], [0, T1], true) + '</text>' +
+      '<path d="M830 194 v28 M817.9 201 l24.2 14 M817.9 215 l24.2 -14" stroke="#d6f1ff" stroke-width="3" stroke-linecap="round">' + sa('stroke-opacity', [1, 0.15], [0, T1], true) + '</path>' +
+      '<rect x="652" y="240" width="16" height="20" rx="3" fill="' + VC.met + '"/>' + tx(760, 266, 'Fridge · ' + (unit === 'w' ? nf(load, 0) + ' W' : nf(I, 1) + ' A'), 'vm', 'middle');
+    // --- the time-lapse clock and the result
+    m += '<circle cx="470" cy="190" r="26" fill="#0b1330" stroke="' + VC.met + '" stroke-width="2"/><circle cx="470" cy="190" r="3" fill="' + VC.met + '"/>' +
+      '<g transform="translate(470 190)"><line x1="0" y1="0" x2="0" y2="-19" stroke="#eaf2ff" stroke-width="3" stroke-linecap="round"/>' +
+      (REDUCE ? '' : '<animateTransform attributeName="transform" type="rotate" values="0;0;1800;1800" keyTimes="0;' + T0 + ';' + T1 + ';1" dur="' + D + 's" repeatCount="indefinite" additive="sum"/>') + '</g>' +
+      steps(470, 246, 'vt', 'middle', function (s) { return s === 0 ? 'start: full' : 'after ' + dur(hours * s / N); }, function (s) { return s === N ? VC.amb : '#eaf2ff'; }) +
+      '<text x="470" y="270" text-anchor="middle" class="vm" opacity="' + (REDUCE ? 1 : 0) + '">time to switch off' + sa('opacity', [0, 1], [0, T1], true) + '</text>';
+    m += tx(30, 26, nf(C, 0) + ' Ah ' + { flooded: 'lead-acid', agm: 'AGM', gel: 'gel', lfp: 'lithium' }[chem] + ' battery · using ' + nf(usable * 100, 0) + ' % of it · fridge draws ' + nf(I, 1) + ' A', 'vt');
     return {
-      svg: svgw(240, 'A battery draining until it reaches its safe limit', m),
-      cap: '<b>Time-lapse of the battery emptying.</b> The hatched part is the reserve you shouldn\'t use (' + nf((1 - usable) * 100, 0) + ' % of the battery). Run it flat and you shorten its life, especially lead-acid. At this load the usable part lasts about ' + dur(hours) + '.'
+      svg: svgw(306, 'A battery connected to a chest fridge, draining in a time-lapse until it reaches its safe limit after about ' + dur(hours), m),
+      cap: '<b>A time-lapse of a fridge running off the battery.</b> The clock spins as the hours pass and the battery level drops. When it reaches the dashed stop line (' + nf(usable * 100, 0) + ' % used, after about ' + dur(hours) + ') it is time to switch off or recharge. The hatched part is the reserve you leave in: run a battery flat and you shorten its life, especially lead-acid. A real compressor fridge cycles on and off, so use its average draw (about a third to half of its running watts).'
     };
   };
 
