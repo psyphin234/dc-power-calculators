@@ -1332,19 +1332,39 @@ footer a { color: var(--accent); }
     if (!ok(Vs, L, I, pct)) return null;
     var sz = sizeFor(I, L, Vs, pct, mat, T);
     if (sz.beyond) return null;
-    var from = Math.max(0, sz.idx - 1), to = Math.min(SIZES.length - 1, sz.idx + 3), n = to - from + 1, k = 64 / Math.sqrt(SIZES[to][0] / Math.PI), m = '', i, j, a, rr, cx, vd, p, am, pass, why;
+    // Everything, including a familiar object for scale, is drawn at the same millimetres-to-pixels scale.
+    // Outer size uses the same insulation fit as cableTemp (typical automotive cable).
+    var from = Math.max(0, sz.idx - 1), to = Math.min(SIZES.length - 1, sz.idx + 3), n = to - from + 1, colW = 1000 / (n + 1), CY = 120, m = '', i, j, a, rc, ro, cx, vd, p, am, pass, why;
+    var outerD = function (a) { return 2 * Math.sqrt(a / Math.PI) + 2 * (0.5 + 0.28 * Math.sqrt(a)); };
+    var od = outerD(SIZES[sz.idx][0]), ref = od <= 9 ? { n: 'A pencil', d: 7, t: '7 mm across' } : od <= 17 ? { n: 'An AA battery', d: 14.5, t: '14.5 mm, end on' } : { n: 'A R5 coin', d: 26, t: '26 mm across' };
+    var s = Math.min(144, colW * 0.8) / Math.max(ref.d, outerD(SIZES[to][0]));
     for (i = from, j = 0; i <= to; i++, j++) {
-      a = SIZES[i][0]; rr = Math.max(5, Math.sqrt(a / Math.PI) * k); cx = (j + 0.5) * 1000 / n;
+      a = SIZES[i][0]; rc = Math.max(2, Math.sqrt(a / Math.PI) * s); ro = Math.max(rc + 2, outerD(a) / 2 * s); cx = (j + 0.5) * colW;
       vd = dropFor(a, I, L, mat, T); p = vd / Vs * 100; am = ampacity(a, mat); pass = p <= pct && am >= I; why = p > pct ? 'too much drop' : 'overloaded';
-      if (i === sz.idx) m += '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + (rr + 16).toFixed(1) + '" fill="' + VC.acc + '" class="vpulse"/>' + tx(cx.toFixed(1), 22, 'Recommended', 'vt', 'middle');
-      m += '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + (rr + 6).toFixed(1) + '" fill="#1a2a5c" stroke="#3a4f8c" stroke-width="2"/>' +
-        '<circle cx="' + cx.toFixed(1) + '" cy="110" r="' + rr.toFixed(1) + '" fill="url(#gCu)"/>' + (rr >= 15 ? strands(cx, 110, rr) : '') +
-        tx(cx.toFixed(1), 212, nf(a, 2) + ' mm²', 'vt', 'middle') + tx(cx.toFixed(1), 234, nf(vd, 2) + ' V lost · ' + nf(am, 0) + ' A', 'vm', 'middle') +
-        '<text x="' + cx.toFixed(1) + '" y="256" text-anchor="middle" class="vt" style="fill:' + (pass ? VC.grn : VC.red) + '">' + (pass ? '✓ passes' : '✗ ' + why) + '</text>';
+      if (i === sz.idx) m += '<circle cx="' + cx.toFixed(1) + '" cy="' + CY + '" r="' + (ro + 10).toFixed(1) + '" fill="' + VC.acc + '" class="vpulse"/>' + tx(cx.toFixed(1), 22, 'Recommended', 'vt', 'middle');
+      m += '<circle cx="' + cx.toFixed(1) + '" cy="' + CY + '" r="' + ro.toFixed(1) + '" fill="#1a2a5c" stroke="#3a4f8c" stroke-width="2"/>' +
+        '<circle cx="' + cx.toFixed(1) + '" cy="' + CY + '" r="' + rc.toFixed(1) + '" fill="url(#gCu)"/>' + (rc >= 15 ? strands(cx, CY, rc) : '') +
+        tx(cx.toFixed(1), 222, nf(a, 2) + ' mm²', 'vt', 'middle') + tx(cx.toFixed(1), 242, '≈ ' + nf(outerD(a), 1) + ' mm across', 'vm', 'middle') +
+        tx(cx.toFixed(1), 262, nf(vd, 2) + ' V lost · ' + nf(am, 0) + ' A', 'vm', 'middle') +
+        '<text x="' + cx.toFixed(1) + '" y="284" text-anchor="middle" class="vt" style="fill:' + (pass ? VC.grn : VC.red) + '">' + (pass ? '✓ passes' : '✗ ' + why) + '</text>';
     }
+    // the object for scale, in the last column
+    var rx = (n + 0.5) * colW, R = ref.d / 2 * s;
+    m += '<line x1="' + (n * colW).toFixed(1) + '" y1="34" x2="' + (n * colW).toFixed(1) + '" y2="290" stroke="' + VC.met + '" stroke-opacity=".3" stroke-dasharray="4 6"/>' + tx(rx.toFixed(1), 22, 'For scale', 'vm', 'middle');
+    if (ref.d === 7) {
+      var hx = [0, 1, 2, 3, 4, 5].map(function (k) { var an = Math.PI / 3 * k; return (rx + R / Math.cos(Math.PI / 6) * Math.cos(an)).toFixed(1) + ',' + (CY + R / Math.cos(Math.PI / 6) * Math.sin(an)).toFixed(1); }).join(' ');
+      m += '<polygon points="' + hx + '" fill="#e9b63a" stroke="#b7862a" stroke-width="2"/><circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + (R * 0.78).toFixed(1) + '" fill="#e8c99a"/><circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + (R * 0.3).toFixed(1) + '" fill="#2b2b2b"/>';
+    } else if (ref.d === 14.5) {
+      m += '<circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + R.toFixed(1) + '" fill="#3a3f4a" stroke="#c9ced8" stroke-width="2"/><circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + (R * 0.86).toFixed(1) + '" fill="#8d95a5"/>' +
+        '<circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + (R * 0.38).toFixed(1) + '" fill="#c9ced8" stroke="#6b7282" stroke-width="1.5"/>' + tx(rx.toFixed(1), (CY + R * 0.68).toFixed(1), '+', 'vm', 'middle');
+    } else {
+      m += '<circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + R.toFixed(1) + '" fill="#d4bd7f" stroke="#9c8650" stroke-width="2"/><circle cx="' + rx.toFixed(1) + '" cy="' + CY + '" r="' + (R * 0.82).toFixed(1) + '" fill="none" stroke="#9c8650" stroke-width="1.5"/>' +
+        '<text x="' + rx.toFixed(1) + '" y="' + (CY + R * 0.3).toFixed(1) + '" text-anchor="middle" style="font: 700 ' + Math.round(R * 0.9) + 'px Sora, sans-serif; fill: #9c8650">5</text>';
+    }
+    m += tx(rx.toFixed(1), 222, ref.n, 'vt', 'middle') + tx(rx.toFixed(1), 242, ref.t, 'vm', 'middle');
     return {
-      svg: svgw(270, 'Cable cross-sections drawn to scale, with the recommended size highlighted', m),
-      cap: '<b>Cable cross-sections, drawn to scale.</b> Each step up in size has more copper, so it loses less voltage and carries more current. The highlighted one is the thinnest that passes both tests for your ' + nf(I, 1) + ' A over ' + nf(L, 1) + ' m. The strands are just for show: real cable has many more, thinner ones.'
+      svg: svgw(298, 'Cable cross-sections drawn to scale with ' + ref.n.toLowerCase() + ' for comparison, with the recommended size highlighted', m),
+      cap: '<b>Cable ends, drawn to scale.</b> The copper is the part that carries the current and the blue ring is the insulation. ' + ref.n + ' is drawn at the same scale so you can picture the real size. Each step up has more copper, so it loses less voltage and carries more current. The highlighted one is the thinnest that passes both tests for your ' + nf(I, 1) + ' A over ' + nf(L, 1) + ' m. Outside sizes are typical for automotive cable and vary by brand. The strands are just for show: real cable has many more, thinner ones.'
     };
   };
 
