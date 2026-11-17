@@ -1244,45 +1244,85 @@ footer a { color: var(--accent); }
   }
   function vizHide(sec) { if (sec._viz) sec._viz.hidden = true; }
 
-  /* ---------- voltage drop: battery sends, cables lose, load gets the rest, plus a 3 % / 10 % meter ---------- */
+  // cable colour by surface temperature: copper when cool, through orange, to red when it is cooking
+  function heatCol(t) {
+    var st = [[35, [207, 127, 58]], [60, [240, 110, 50]], [90, [255, 60, 60]], [130, [255, 30, 90]]], i, k, a, b2;
+    if (t <= st[0][0]) return 'rgb(' + st[0][1].join(',') + ')';
+    for (i = 1; i < st.length; i++) if (t <= st[i][0]) break;
+    if (i === st.length) return 'rgb(' + st[i - 1][1].join(',') + ')';
+    k = (t - st[i - 1][0]) / (st[i][0] - st[i - 1][0]); a = st[i - 1][1]; b2 = st[i][1];
+    return 'rgb(' + [0, 1, 2].map(function (j) { return Math.round(a[j] + (b2[j] - a[j]) * k); }).join(',') + ')';
+  }
+
+  /* ---------- voltage drop: x-ray car, battery in front, fridge in the boot, plus a 3 % / 10 % meter ---------- */
   VIZ.vdrop = function (sec) {
     var Vs = num(sec, 'vs'), L = len(sec), I = loadA(sec, Vs), A = num(sec, 'wire'), mat = str(sec, 'mat'), T = num(sec, 'temp');
     if (!ok(Vs, L, I, A)) return null;
     var r = resist(mat, T) * 2 * L / A, vd = I * r, pct = vd / Vs * 100, vl = Math.max(0, Vs - vd), lv = pct <= 3 ? 'good' : pct <= 10 ? 'warn' : 'bad';
-    var tc = cableTemp(I, A, mat, T), feel = touchFeel(tc), hot = tc < 50 ? VC.cop : tc < 80 ? '#e8743a' : '#ff5a5a';
+    var tc = cableTemp(I, A, mat, T), feel = touchFeel(tc), hot = heatCol(tc);
     var sw = cabW(A), col = lvColor(lv), b = Math.pow(vl / Vs, 3), fw = Math.max(3, Math.min(6, sw * 0.5)), m = '';
-    var Y1 = 76, Y2 = 166;
-    // 1. the story left to right: battery sends, the cables lose some, the load gets the rest.
-    //    Positive leaves the + terminal (top) and the return comes back to the − terminal (bottom).
-    [[Y1, 166, 850], [Y2, 850, 166]].forEach(function (w) {
-      m += '<line x1="166" y1="' + w[0] + '" x2="850" y2="' + w[0] + '" stroke="' + hot + '" stroke-opacity=".25" stroke-width="' + (sw + 9) + '" stroke-linecap="round"/>' + wire(166, w[0], 850, w[0], sw, hot) + flowL(w[1], w[0], w[2], w[0], I, fw);
+    // 1. an x-ray car: battery in the engine bay, cables along the floor to a fridge in the boot.
+    //    Car coordinates sit inside a group moved down 24 so the thermometer fits above the roof.
+    var body = 'M60 214 L60 170 Q62 140 92 136 L300 120 L400 58 Q410 52 424 52 L740 50 Q760 50 770 58 L880 118 Q920 126 926 150 L928 212 Q928 228 912 228 L820 228 A52 52 0 0 0 716 228 L296 228 A52 52 0 0 0 192 228 L76 228 Q60 228 60 214 Z';
+    var c = '<ellipse cx="500" cy="274" rx="470" ry="9" fill="#000" fill-opacity=".35"/>';
+    // far side first (gives the depth), then the near side, see-through so the cables show
+    c += '<circle cx="260" cy="218" r="42" fill="#070c1c" stroke="#24305a" stroke-width="2"/><circle cx="784" cy="218" r="42" fill="#070c1c" stroke="#24305a" stroke-width="2"/>' +
+      '<path d="' + body + '" transform="translate(16 -10)" fill="#0a1330" fill-opacity=".85" stroke="' + VC.acc + '" stroke-opacity=".25" stroke-width="1.5"/>' +
+      [[60, 170], [60, 214], [400, 58], [770, 58], [926, 150], [928, 212]].map(function (p) { return '<line x1="' + p[0] + '" y1="' + p[1] + '" x2="' + (p[0] + 16) + '" y2="' + (p[1] - 10) + '" stroke="' + VC.acc + '" stroke-opacity=".3" stroke-width="1.5"/>'; }).join('') +
+      '<path d="' + body + '" fill="' + VC.box + '" fill-opacity=".6" stroke="' + VC.acc + '" stroke-opacity=".75" stroke-width="2"/>' +
+      '<path d="M318 124 L404 66 L560 64 L560 124 Z M574 64 L736 62 L838 120 L574 124 Z" fill="' + VC.acc + '" fill-opacity=".07" stroke="' + VC.acc + '" stroke-opacity=".35"/>' +
+      '<path d="M566 64 V214 M300 120 V214" stroke="' + VC.acc + '" stroke-opacity=".18"/>' +
+      '<ellipse cx="66" cy="158" rx="5" ry="9" fill="#eaf2ff" fill-opacity=".8"/><rect x="920" y="138" width="7" height="22" rx="2" fill="' + VC.red + '"/>';
+    [244, 768].forEach(function (x) {
+      c += '<circle cx="' + x + '" cy="228" r="42" fill="#0b1022" stroke="#3a4f8c" stroke-width="3"/><circle cx="' + x + '" cy="228" r="24" fill="none" stroke="' + VC.met + '" stroke-opacity=".6" stroke-width="3"/><circle cx="' + x + '" cy="228" r="6" fill="' + VC.met + '"/>';
     });
-    m += boxR(40, 56, 110, 130) + '<rect x="150" y="' + (Y1 - 10) + '" width="16" height="20" rx="3" fill="' + VC.red + '"/><rect x="150" y="' + (Y2 - 10) + '" width="16" height="20" rx="3" fill="' + VC.met + '"/>' +
-      tx(136, Y1 + 7, '+', 'vh', 'middle') + tx(136, Y2 + 7, '−', 'vh', 'middle') + tx(92, 112, 'Battery sends', 'vm', 'middle') + tx(92, 142, nf(Vs, 1) + ' V', 'vh', 'middle');
-    m += boxR(850, 56, 110, 130, col) + '<circle cx="850" cy="' + Y1 + '" r="6" fill="' + VC.red + '"/><circle cx="850" cy="' + Y2 + '" r="6" fill="' + VC.met + '"/>' +
-      '<circle cx="905" cy="118" r="46" fill="url(#gBulb)" style="opacity:' + b.toFixed(3) + '"/><circle cx="905" cy="118" r="15" fill="' + VC.amb + '" fill-opacity="' + (0.2 + 0.8 * b).toFixed(3) + '" stroke="' + VC.amb + '"/>' +
-      tx(905, 80, 'Load gets', 'vm', 'middle') + '<text x="905" y="170" text-anchor="middle" class="vh" style="fill:' + col + '">' + nf(vl, 2) + ' V</text>';
-    m += tx(200, Y1 - 12, 'positive cable loses ≈ ' + nf(vd / 2, 2) + ' V →', 'vm') + tx(200, Y2 + 26, '← return cable loses ≈ ' + nf(vd / 2, 2) + ' V', 'vm');
-    m += '<text x="500" y="114" text-anchor="middle" class="vt" style="fill:' + col + '">Lost in the cables: ' + nf(vd, 2) + ' V (' + nf(pct, 1) + ' %)</text>' +
-      tx(500, 138, nf(L, 1) + ' m each way · ' + nf(A, 1) + ' mm² · ' + nf(I, 1) + ' A', 'vm', 'middle');
+    // the cables, coloured by the heat they make. Positive leaves the + terminal, the return comes back to −.
+    var pos = 'M197 146 H334 V198 H676 V136 H780', neg = 'M780 156 H700 V218 H312 V166 H197';
+    [pos, neg].forEach(function (d) {
+      c += '<path d="' + d + '" fill="none" stroke="' + hot + '" stroke-opacity=".25" stroke-width="' + (sw + 9) + '" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="' + d + '" fill="none" stroke="' + hot + '" stroke-width="' + sw + '" stroke-linejoin="round"/>' + flowP(d, I, fw);
+    });
+    if (tc >= 50) c += heat(505, 190, tc < 65 ? 1 : tc < 85 ? 2 : 3);
+    c += tx(410, 184, 'positive cable →', 'vm', 'middle') + tx(500, 250, '← return cable', 'vm', 'middle');
+    // battery in the engine bay
+    c += boxR(105, 138, 80, 40) + '<rect x="185" y="140" width="12" height="12" rx="2" fill="' + VC.red + '"/><rect x="185" y="160" width="12" height="12" rx="2" fill="' + VC.met + '"/>' +
+      tx(173, 151, '+', 'vm', 'middle') + tx(173, 172, '−', 'vm', 'middle') + tx(137, 163, nf(Vs, 1) + ' V', 'vm', 'middle') +
+      '<line x1="145" y1="136" x2="145" y2="104" stroke="' + VC.met + '" stroke-opacity=".6"/>' + tx(145, 98, 'Battery sends ' + nf(Vs, 1) + ' V', 'vt', 'middle');
+    // fridge in the boot: the cold glow fades as its voltage falls
+    c += '<rect x="784" y="124" width="92" height="44" rx="6" fill="' + VC.acc + '" style="opacity:' + (0.08 + 0.4 * b).toFixed(3) + '"/>' + boxR(780, 120, 100, 52, col) +
+      '<line x1="784" y1="132" x2="876" y2="132" stroke="' + VC.met + '" stroke-opacity=".6"/>' +
+      '<path d="M840 140 v24 M829.6 146 l20.8 12 M829.6 158 l20.8 -12" stroke="#d6f1ff" stroke-width="2.5" stroke-linecap="round" stroke-opacity="' + (0.3 + 0.7 * b).toFixed(3) + '"/>' +
+      '<circle cx="780" cy="136" r="5" fill="' + VC.red + '"/><circle cx="780" cy="156" r="5" fill="' + VC.met + '"/>' +
+      '<line x1="830" y1="118" x2="830" y2="46" stroke="' + col + '" stroke-opacity=".6"/>' +
+      '<text x="800" y="40" class="vt" style="fill:' + col + '">Fridge gets ' + nf(vl, 2) + ' V</text>';
+    m += '<g transform="translate(0 24)">' + c + '</g>';
     // 2. how warm the cable is to touch
     var lvl = Math.max(0.06, Math.min(1, (tc - 10) / 110));
-    m += '<rect x="600" y="4" width="14" height="38" rx="7" fill="' + VC.box + '" stroke="' + VC.met + '" stroke-opacity=".7"/>' +
-      '<rect x="603" y="' + (39 - 32 * lvl).toFixed(1) + '" width="8" height="' + (32 * lvl).toFixed(1) + '" rx="4" fill="' + hot + '"/><circle cx="607" cy="46" r="8" fill="' + hot + '"/>' +
-      tx(626, 24, 'Cable ≈ ' + (tc >= 150 ? 'over 150' : nf(tc, 0)) + ' °C', 'vt') + tx(626, 44, feel.t, 'vm');
-    if (tc >= 50) m += heat(500, Y1 - 12, tc < 65 ? 1 : tc < 85 ? 2 : 3);
-    // 3. is that too much? a meter with the 3 % and 10 % limits
-    var X0 = 100, MW = 800, MX = 15, mx = function (p) { return (X0 + MW * Math.min(p, MX) / MX).toFixed(1); }, px = parseFloat(mx(pct));
-    m += '<rect x="' + X0 + '" y="240" width="' + (mx(3) - X0).toFixed(1) + '" height="16" fill="' + VC.grn + '" fill-opacity=".75"/>' +
-      '<rect x="' + mx(3) + '" y="240" width="' + (mx(10) - mx(3)).toFixed(1) + '" height="16" fill="' + VC.amb + '" fill-opacity=".75"/>' +
-      '<rect x="' + mx(10) + '" y="240" width="' + (X0 + MW - mx(10)).toFixed(1) + '" height="16" fill="' + VC.red + '" fill-opacity=".75"/>' +
-      '<rect x="' + X0 + '" y="240" width="' + MW + '" height="16" rx="3" fill="none" stroke="' + VC.met + '" stroke-opacity=".5"/>';
-    m += tx((X0 + parseFloat(mx(3))) / 2, 278, 'up to 3 %: good', 'vm', 'middle') + tx((parseFloat(mx(3)) + parseFloat(mx(10))) / 2, 278, '3 to 10 %: only for lights and simple loads', 'vm', 'middle') + tx((parseFloat(mx(10)) + X0 + MW) / 2, 278, 'over 10 %: too much', 'vm', 'middle');
-    m += '<polygon points="' + (px - 9) + ',224 ' + (px + 9) + ',224 ' + px + ',238" fill="#eaf2ff" class="vblink"/>' +
-      tx(Math.max(150, Math.min(850, px)), 216, (pct > MX ? 'you lose over 15 %' : 'you lose ' + nf(pct, 1) + ' %'), 'vt', 'middle');
+    m += '<rect x="440" y="2" width="14" height="32" rx="7" fill="' + VC.box + '" stroke="' + VC.met + '" stroke-opacity=".7"/>' +
+      '<rect x="443" y="' + (31 - 26 * lvl).toFixed(1) + '" width="8" height="' + (26 * lvl).toFixed(1) + '" rx="4" fill="' + hot + '"/><circle cx="447" cy="38" r="8" fill="' + hot + '"/>' +
+      tx(466, 18, 'Cable ≈ ' + (tc >= 150 ? 'over 150' : nf(tc, 0)) + ' °C', 'vt') + tx(466, 38, feel.t, 'vm');
+    // colour key for the cable
+    m += '<defs><linearGradient id="gHeatKey"><stop offset="0" stop-color="' + heatCol(35) + '"/><stop offset=".45" stop-color="' + heatCol(60) + '"/><stop offset="1" stop-color="' + heatCol(90) + '"/></linearGradient></defs>' +
+      '<rect x="790" y="8" width="170" height="10" rx="5" fill="url(#gHeatKey)"/>' +
+      '<line x1="' + (790 + 170 * Math.max(0, Math.min(1, (tc - 35) / 55))).toFixed(1) + '" y1="4" x2="' + (790 + 170 * Math.max(0, Math.min(1, (tc - 35) / 55))).toFixed(1) + '" y2="22" stroke="#eaf2ff" stroke-width="3" stroke-linecap="round"/>' +
+      tx(790, 36, 'cool', 'vm') + tx(960, 36, '90 °C+', 'vm', 'end');
+    // 3. point out the drop: a dimension line from the battery to the fridge
+    m += '<path d="M197 308 V324 M780 308 V324 M197 316 H780" stroke="' + col + '" stroke-width="2" fill="none"/>' +
+      '<path d="M197 316 l10 -5 v10 Z M780 316 l-10 -5 v10 Z" fill="' + col + '"/>' +
+      '<text x="488" y="342" text-anchor="middle" class="vt" style="fill:' + col + '">Lost along the way: ' + nf(vd, 2) + ' V (' + nf(pct, 1) + ' %), half in each cable</text>' +
+      tx(488, 362, nf(L, 1) + ' m each way · ' + nf(A, 1) + ' mm² · ' + nf(I, 1) + ' A', 'vm', 'middle');
+    // 4. is that too much? a meter with the 3 % and 10 % limits
+    var X0 = 100, MW = 800, MX = 15, MY = 416, mx = function (p) { return (X0 + MW * Math.min(p, MX) / MX).toFixed(1); }, px = parseFloat(mx(pct));
+    m += '<rect x="' + X0 + '" y="' + MY + '" width="' + (mx(3) - X0).toFixed(1) + '" height="16" fill="' + VC.grn + '" fill-opacity=".75"/>' +
+      '<rect x="' + mx(3) + '" y="' + MY + '" width="' + (mx(10) - mx(3)).toFixed(1) + '" height="16" fill="' + VC.amb + '" fill-opacity=".75"/>' +
+      '<rect x="' + mx(10) + '" y="' + MY + '" width="' + (X0 + MW - mx(10)).toFixed(1) + '" height="16" fill="' + VC.red + '" fill-opacity=".75"/>' +
+      '<rect x="' + X0 + '" y="' + MY + '" width="' + MW + '" height="16" rx="3" fill="none" stroke="' + VC.met + '" stroke-opacity=".5"/>';
+    m += tx((X0 + parseFloat(mx(3))) / 2, MY + 38, 'up to 3 %: good', 'vm', 'middle') + tx((parseFloat(mx(3)) + parseFloat(mx(10))) / 2, MY + 38, '3 to 10 %: only for lights and simple loads', 'vm', 'middle') + tx((parseFloat(mx(10)) + X0 + MW) / 2, MY + 38, 'over 10 %: too much', 'vm', 'middle');
+    m += '<polygon points="' + (px - 9) + ',' + (MY - 16) + ' ' + (px + 9) + ',' + (MY - 16) + ' ' + px + ',' + (MY - 2) + '" fill="#eaf2ff" class="vblink"/>' +
+      tx(Math.max(150, Math.min(850, px)), MY - 24, (pct > MX ? 'you lose over 15 %' : 'you lose ' + nf(pct, 1) + ' %'), 'vt', 'middle');
     return {
-      svg: svgw(292, 'A battery, two cables and a bulb: how much voltage the cables lose, how warm they get, and a meter showing whether the loss is acceptable', m),
-      cap: '<b>Read it left to right.</b> The battery sends ' + nf(Vs, 1) + ' V. Every cable is a small resistor, so pushing ' + nf(I, 1) + ' A out on the positive cable and back on the return loses ' + nf(vd, 2) + ' V on the way, half in each. The load only gets what is left: ' + nf(vl, 2) + ' V, and the bulb dims to match. The meter shows whether that loss is OK. The lost voltage becomes heat in the cable, about ' + nf(tc, 0) + ' °C on the surface (' + feel.t + '), for a single cable in still air. Bundled in a loom it runs hotter. Thicker or shorter cable loses less.'
+      svg: svgw(MY + 52, 'An x-ray view of a car: the battery in the engine bay, cables along the floor to a fridge in the boot, coloured by how hot they get, with the voltage lost on the way and a meter showing whether that is acceptable', m),
+      cap: '<b>Battery in front, fridge in the boot.</b> The battery sends ' + nf(Vs, 1) + ' V. Every cable is a small resistor, so pushing ' + nf(I, 1) + ' A down the positive cable and back on the return loses ' + nf(vd, 2) + ' V on the way, half in each. The fridge only gets what is left: ' + nf(vl, 2) + ' V. Compressor fridges switch themselves off when the voltage at the fridge falls below their cut-out setting, so a long run to the boot needs thick cable. The lost voltage becomes heat: the cable is coloured by how hot it gets, about ' + nf(tc, 0) + ' °C on the surface (' + feel.t + '), for a single cable in still air. Bundled in a loom it runs hotter. The meter shows whether the loss is OK.'
     };
   };
 
