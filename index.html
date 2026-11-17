@@ -1335,9 +1335,33 @@ footer a { color: var(--accent); }
     m += '<rect x="141" y="103" width="18" height="11" rx="2" fill="' + VC.red + '"/><rect x="141" y="186" width="18" height="11" rx="2" fill="' + VC.met + '"/>' + boxR(105, 112, 90, 76) +
       tx(140, 158, nf(V, 1) + ' V', 'vh', 'middle') + tx(181, 134, '+', 'vh', 'middle') + tx(181, 182, '−', 'vh', 'middle');
     m += tx(500, 138, nf(R, 2) + ' Ω', 'vh', 'middle') + tx(500, 16, nf(P, 1) + ' W turned into heat', 'vt', 'middle') + tx(865, 152, nf(I, 2) + ' A', 'vh') + tx(865, 174, 'current', 'vm');
+    m += tx(20, 24, 'Electricity', 'vt') + '<line x1="20" y1="236" x2="980" y2="236" stroke="' + VC.met + '" stroke-opacity=".25" stroke-dasharray="4 6"/>';
+    // the same loop as water: a pump (battery) pushes water round a pipe with a narrow bit (resistor)
+    var Y = 330, Yb = Y + 110, nw = Math.max(3, Math.min(18, 13.5 - 5 * Math.log10(R))), nh = nw / 2, gmax = V > 30 ? 60 : V > 15 ? 30 : 15,
+      ga = (-120 + 240 * Math.min(1, V / gmax)) * Math.PI / 180, spin = (parseFloat(fdur(I)) * 8).toFixed(2), pw = '#2a3f78', wc = '#1d6fc4';
+    m += tx(20, 258, 'The same thing with water', 'vt');
+    m += '<path d="M580 ' + Y + ' H850 V' + Yb + ' H150 V' + Y + ' H420" fill="none" stroke="' + pw + '" stroke-width="26" stroke-linejoin="round"/>' +
+      '<path d="M580 ' + Y + ' H850 V' + Yb + ' H150 V' + Y + ' H420" fill="none" stroke="' + wc + '" stroke-width="18" stroke-linejoin="round"/>';
+    // the narrow section, glowing with friction heat
+    m += '<rect x="430" y="' + (Y - 24) + '" width="140" height="48" rx="12" fill="' + VC.amb + '" style="opacity:' + (op * 0.8).toFixed(2) + '"/>' +
+      '<polygon points="418,' + (Y - 13) + ' 445,' + (Y - nh - 4) + ' 555,' + (Y - nh - 4) + ' 582,' + (Y - 13) + ' 582,' + (Y + 13) + ' 555,' + (Y + nh + 4) + ' 445,' + (Y + nh + 4) + ' 418,' + (Y + 13) + '" fill="' + pw + '"/>' +
+      '<polygon points="418,' + (Y - 9) + ' 445,' + (Y - nh) + ' 555,' + (Y - nh) + ' 582,' + (Y - 9) + ' 582,' + (Y + 9) + ' 555,' + (Y + nh) + ' 445,' + (Y + nh) + ' 418,' + (Y + 9) + '" fill="' + wc + '"/>';
+    m += '<path d="M150 ' + Y + ' H850 V' + Yb + ' H150 Z" fill="none" class="vflow" stroke="#d6f1ff" stroke-width="' + Math.min(4, nw * 0.7).toFixed(1) + '" style="animation-duration:' + fdur(I) + '"/>';
+    m += heat(500, Y - 14, hn);
+    // pump with a spinning impeller
+    m += '<circle cx="150" cy="' + (Y + 55) + '" r="40" fill="' + VC.box + '" stroke="' + VC.acc + '" stroke-opacity=".55" stroke-width="2"/>' +
+      '<g transform="translate(150 ' + (Y + 55) + ')"><g>' + [0, 90, 180, 270].map(function (a) { return '<path d="M0 0 q 18 -10 30 0" transform="rotate(' + a + ')" fill="none" stroke="' + VC.acc + '" stroke-width="4" stroke-linecap="round"/>'; }).join('') +
+      '<circle r="6" fill="' + VC.acc + '"/>' + (REDUCE ? '' : '<animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="' + spin + 's" repeatCount="indefinite"/>') + '</g></g>';
+    // pressure gauge on the pump's outlet
+    m += '<line x1="150" y1="' + (Y - 13) + '" x2="150" y2="' + (Y - 26) + '" stroke="' + pw + '" stroke-width="5"/><circle cx="150" cy="' + (Y - 44) + '" r="18" fill="' + VC.box + '" stroke="' + VC.met + '" stroke-width="1.5"/>' +
+      '<line x1="150" y1="' + (Y - 44) + '" x2="' + (150 + 13 * Math.sin(ga)).toFixed(1) + '" y2="' + (Y - 44 - 13 * Math.cos(ga)).toFixed(1) + '" stroke="' + VC.red + '" stroke-width="2.5" stroke-linecap="round"/>' +
+      tx(176, Y - 46, nf(V, 1) + ' V of pressure', 'vt') + tx(176, Y - 28, 'from the pump (battery)', 'vm');
+    m += tx(500, Y + 48, nf(R, 2) + ' Ω', 'vh', 'middle') + tx(500, Y + 70, 'narrow pipe (resistor)', 'vm', 'middle') + tx(500, Y - 66, nf(P, 1) + ' W of friction heat', 'vt', 'middle') +
+      tx(865, Y + 62, nf(I, 2) + ' A', 'vh') + tx(865, Y + 84, 'flow', 'vm') +
+      tx(500, Yb + 42, 'Pressure is volts · flow is amps · the narrow pipe is ohms · the friction heat is watts', 'vm', 'middle');
     return {
-      svg: svgw(230, 'A battery pushing current through a resistor, which glows with heat', m),
-      cap: '<b>Water analogy.</b> Voltage is the pressure, current is the flow, and resistance is how narrow the pipe is. Squeeze the same pressure through a narrower pipe and less flows. The resistor turns the power (volts × amps) into heat: here ' + nf(V, 1) + ' V × ' + nf(I, 2) + ' A = ' + nf(P, 1) + ' W.'
+      svg: svgw(Yb + 56, 'A battery pushing current through a resistor, and the same loop drawn as a pump pushing water through a narrow pipe', m),
+      cap: '<b>Water analogy.</b> Voltage is the pressure, current is the flow, and resistance is how narrow the pipe is. Squeeze the same pressure through a narrower pipe and less flows. The resistor turns the power (volts × amps) into heat: here ' + nf(V, 1) + ' V × ' + nf(I, 2) + ' A = ' + nf(P, 1) + ' W. In the water drawing the pump is the battery, its gauge shows the pressure, and the pipe narrows as the ohms go up. Change the numbers and watch the water speed up or slow down.'
     };
   };
 
